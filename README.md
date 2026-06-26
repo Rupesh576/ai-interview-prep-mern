@@ -104,14 +104,38 @@ http://localhost:5173
 - Express server
 - MongoDB connection helper
 - Health check API route
+- User registration and login
+- JWT protected auth route
 - Environment variable examples
+
+## API Routes
+
+### Health
+
+```txt
+GET /api/health
+```
+
+### Auth
+
+```txt
+POST /api/auth/register
+POST /api/auth/login
+GET /api/auth/me
+```
+
+`GET /api/auth/me` requires a JWT in the `Authorization` header:
+
+```txt
+Authorization: Bearer your_token_here
+```
 
 ## Next Step
 
-Build authentication:
+Build interview sessions:
 
-- User model
-- Register route
-- Login route
-- JWT protected `GET /api/auth/me` route
-
+- InterviewSession model
+- Question model
+- Create session route
+- List user sessions route
+- Get one session route
