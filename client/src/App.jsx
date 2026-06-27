@@ -1,49 +1,103 @@
-import { Brain, CheckCircle2, PlayCircle } from 'lucide-react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Navbar from './components/Navbar';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import InterviewRoom from './pages/InterviewRoom';
+import FeedbackView from './pages/FeedbackView';
 
-const features = [
-  'Create role-based mock interviews',
-  'Practice one question at a time',
-  'Review AI feedback and scores'
-];
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent" />
+      </div>
+    );
+  }
+
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
+
+// Redirect component for already logged-in users
+const AuthRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent" />
+      </div>
+    );
+  }
+
+  return isAuthenticated ? <Navigate to="/" replace /> : children;
+};
 
 function App() {
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <section className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-6 py-12">
-        <div className="max-w-3xl">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-100">
-            <Brain size={18} />
-            AI Interview Preparation
-          </div>
+    <AuthProvider>
+      <Router>
+        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+          <Navbar />
+          <main className="flex-1">
+            <Routes>
+              {/* Protected Main Application Routes */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/interview/:id"
+                element={
+                  <ProtectedRoute>
+                    <InterviewRoom />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/feedback/:id"
+                element={
+                  <ProtectedRoute>
+                    <FeedbackView />
+                  </ProtectedRoute>
+                }
+              />
 
-          <h1 className="text-4xl font-bold leading-tight sm:text-6xl">
-            Practice interviews with focused questions and actionable feedback.
-          </h1>
+              {/* Public Auth Routes */}
+              <Route
+                path="/login"
+                element={
+                  <AuthRoute>
+                    <Login />
+                  </AuthRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <AuthRoute>
+                    <Register />
+                  </AuthRoute>
+                }
+              />
 
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-            This MERN app will help users create mock interview sessions, answer AI-generated questions, and track progress over time.
-          </p>
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <button className="inline-flex items-center gap-2 rounded-md bg-cyan-400 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-300">
-              <PlayCircle size={20} />
-              Start Building
-            </button>
-          </div>
+              {/* Fallback Catch-All Route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
         </div>
-
-        <div className="mt-12 grid gap-4 sm:grid-cols-3">
-          {features.map((feature) => (
-            <div key={feature} className="rounded-lg border border-white/10 bg-white/5 p-5">
-              <CheckCircle2 className="mb-4 text-cyan-300" size={24} />
-              <p className="text-sm font-medium text-slate-100">{feature}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-    </main>
+      </Router>
+    </AuthProvider>
   );
 }
 
 export default App;
-
