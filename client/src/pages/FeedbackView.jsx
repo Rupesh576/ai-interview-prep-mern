@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Award, ArrowLeft, ArrowRight, ClipboardCheck, Sparkles, MessageCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Award, ArrowLeft, ArrowRight, ClipboardCheck, Sparkles, MessageCircle, AlertCircle, ChevronDown, ChevronUp, Copy, CheckCheck } from 'lucide-react';
 import { getSessionDetails } from '../services/sessionService';
 
 const FeedbackView = () => {
@@ -12,6 +12,7 @@ const FeedbackView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -36,6 +37,49 @@ const FeedbackView = () => {
 
   const toggleExpand = (qId) => {
     setExpandedQuestionId(expandedQuestionId === qId ? null : qId);
+  };
+
+  const handleCopyFeedback = async () => {
+    const lines = [];
+    lines.push('AI Interview Feedback Report');
+    lines.push('='.repeat(40));
+    lines.push(`Role: ${session.role}`);
+    lines.push(`Difficulty: ${session.difficulty}  |  Focus: ${session.techStack || 'General'}`);
+    lines.push(`Date: ${new Date(session.createdAt).toLocaleDateString()}`);
+    lines.push(`Overall Score: ${score}/100 — ${ratingLabel}`);
+    lines.push('');
+    lines.push('AI SUMMARY');
+    lines.push('-'.repeat(40));
+    lines.push(session.feedbackSummary || 'No summary available.');
+    lines.push('');
+    lines.push('QUESTION BREAKDOWN');
+    lines.push('-'.repeat(40));
+
+    questions.forEach((q, idx) => {
+      lines.push('');
+      lines.push(`Q${idx + 1}: ${q.questionText}`);
+      lines.push(`Score: ${q.score || 0}/10`);
+      lines.push('');
+      lines.push('Your Answer:');
+      lines.push(q.userAnswer || 'No answer provided.');
+      lines.push('');
+      lines.push('AI Feedback:');
+      lines.push(q.feedback || 'No feedback generated.');
+      if (q.suggestedAnswer) {
+        lines.push('');
+        lines.push('Suggested Answer:');
+        lines.push(q.suggestedAnswer);
+      }
+      lines.push('');
+    });
+
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy feedback to clipboard:', err);
+    }
   };
 
   if (loading) {
@@ -235,6 +279,27 @@ const FeedbackView = () => {
 
       {/* Actions footer */}
       <div className="mt-12 flex flex-wrap gap-4 items-center justify-center">
+        <button
+          onClick={handleCopyFeedback}
+          className={`inline-flex items-center gap-2 rounded-lg border px-6 py-3 font-bold transition ${
+            copied
+              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
+              : 'border-white/10 bg-white/5 hover:bg-white/10 text-slate-200'
+          }`}
+        >
+          {copied ? (
+            <>
+              <CheckCheck size={16} />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy size={16} />
+              Copy Feedback Report
+            </>
+          )}
+        </button>
+
         <button
           onClick={() => navigate('/')}
           className="inline-flex items-center gap-2 rounded-lg bg-cyan-400 hover:bg-cyan-300 px-6 py-3 font-bold text-slate-950 transition shadow-md shadow-cyan-400/15"
