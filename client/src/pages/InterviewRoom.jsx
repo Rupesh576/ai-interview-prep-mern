@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Save, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, CheckCircle, AlertCircle, Loader, Timer } from 'lucide-react';
 import { getSessionDetails, saveDraftAnswers, submitInterview } from '../services/sessionService';
 
 const InterviewRoom = () => {
@@ -16,6 +16,8 @@ const InterviewRoom = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitProgressMsg, setSubmitProgressMsg] = useState('Submitting answers...');
   const [error, setError] = useState('');
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerRef = useRef(null);
 
   // Fetch session details on mount
   useEffect(() => {
@@ -71,6 +73,21 @@ const InterviewRoom = () => {
     return () => clearInterval(interval);
   }, [submitting]);
 
+  // Start elapsed-time clock once the session is loaded; stop on unmount or submit
+  useEffect(() => {
+    if (!session) return;
+    timerRef.current = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [session]);
+
+  const formatElapsed = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
   const handleAnswerChange = (qId, val) => {
     setAnswers((prev) => ({
       ...prev,
@@ -120,9 +137,10 @@ const InterviewRoom = () => {
       return;
     }
 
+    clearInterval(timerRef.current);
     setSubmitting(true);
     setError('');
-    
+
     try {
       // First save final draft answers
       const answersPayload = Object.keys(answers).map((qId) => ({
@@ -190,6 +208,11 @@ const InterviewRoom = () => {
             <span>Difficulty: <strong className="text-slate-200">{session?.difficulty}</strong></span>
             <span>•</span>
             <span>Focus: <strong className="text-slate-200">{session?.techStack || 'General'}</strong></span>
+            <span>•</span>
+            <span className="flex items-center gap-1">
+              <Timer size={12} className="text-cyan-400" />
+              <strong className="text-slate-200 tabular-nums">{formatElapsed(elapsedSeconds)}</strong>
+            </span>
           </div>
         </div>
 
