@@ -3,6 +3,30 @@ import { useNavigate } from 'react-router-dom';
 import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle } from 'lucide-react';
 import { createSession, getUserSessions } from '../services/sessionService';
 
+const SessionCardSkeleton = () => (
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg border border-white/5 bg-white/5 p-4 animate-pulse">
+    <div className="space-y-2 flex-1">
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="h-5 w-36 rounded bg-white/10" />
+        <div className="h-4 w-20 rounded-full bg-white/10" />
+      </div>
+      <div className="h-3 w-44 rounded bg-white/10" />
+      <div className="flex items-center gap-3">
+        <div className="h-3 w-24 rounded bg-white/10" />
+        <div className="h-3 w-4 rounded bg-white/10" />
+        <div className="h-3 w-16 rounded bg-white/10" />
+      </div>
+    </div>
+    <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
+      <div className="flex flex-col items-end gap-1">
+        <div className="h-3 w-8 rounded bg-white/10" />
+        <div className="h-6 w-10 rounded bg-white/10" />
+      </div>
+      <div className="h-9 w-24 rounded-lg bg-white/10" />
+    </div>
+  </div>
+);
+
 const Dashboard = () => {
   const [sessions, setSessions] = useState([]);
   const [role, setRole] = useState('Frontend Engineer');
@@ -86,7 +110,11 @@ const Dashboard = () => {
               <ClipboardList size={20} />
             </div>
           </div>
-          <p className="mt-4 text-3xl font-bold">{sessions.length}</p>
+          {fetching ? (
+            <div className="mt-4 h-9 w-12 rounded-lg bg-white/10 animate-pulse" />
+          ) : (
+            <p className="mt-4 text-3xl font-bold">{sessions.length}</p>
+          )}
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 p-6 shadow-md">
@@ -96,7 +124,11 @@ const Dashboard = () => {
               <BookOpen size={20} />
             </div>
           </div>
-          <p className="mt-4 text-3xl font-bold">{totalCompleted}</p>
+          {fetching ? (
+            <div className="mt-4 h-9 w-12 rounded-lg bg-white/10 animate-pulse" />
+          ) : (
+            <p className="mt-4 text-3xl font-bold">{totalCompleted}</p>
+          )}
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 p-6 shadow-md">
@@ -106,7 +138,11 @@ const Dashboard = () => {
               <Award size={20} />
             </div>
           </div>
-          <p className="mt-4 text-3xl font-bold">{averageScore}%</p>
+          {fetching ? (
+            <div className="mt-4 h-9 w-16 rounded-lg bg-white/10 animate-pulse" />
+          ) : (
+            <p className="mt-4 text-3xl font-bold">{averageScore}%</p>
+          )}
         </div>
       </div>
 
@@ -209,9 +245,8 @@ const Dashboard = () => {
           <h2 className="text-xl font-bold tracking-tight mb-6">Interview History</h2>
           
           {fetching ? (
-            <div className="flex h-48 flex-col items-center justify-center gap-2">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent" />
-              <p className="text-sm text-slate-400">Loading your history...</p>
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => <SessionCardSkeleton key={i} />)}
             </div>
           ) : sessions.length === 0 ? (
             <div className="flex h-64 flex-col items-center justify-center rounded-lg border border-dashed border-white/10 p-6 text-center">
