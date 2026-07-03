@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle } from 'lucide-react';
+import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { createSession, getUserSessions } from '../services/sessionService';
 
 const SessionCardSkeleton = () => (
@@ -27,6 +27,8 @@ const SessionCardSkeleton = () => (
   </div>
 );
 
+const SESSIONS_PER_PAGE = 5;
+
 const Dashboard = () => {
   const [sessions, setSessions] = useState([]);
   const [role, setRole] = useState('Frontend Engineer');
@@ -36,6 +38,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -83,6 +86,12 @@ const Dashboard = () => {
   const averageScore = totalCompleted > 0
     ? Math.round(completedInterviews.reduce((acc, curr) => acc + (curr.overallScore || 0), 0) / totalCompleted)
     : 0;
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(sessions.length / SESSIONS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const pageStart = (safePage - 1) * SESSIONS_PER_PAGE;
+  const paginatedSessions = sessions.slice(pageStart, pageStart + SESSIONS_PER_PAGE);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10 text-white">
@@ -257,73 +266,117 @@ const Dashboard = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-              {sessions.map((session) => (
-                <div
-                  key={session._id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg border border-white/5 bg-white/5 p-4 transition hover:bg-white/10"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-bold text-slate-100">{session.role}</h4>
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        session.difficulty === 'Beginner' ? 'bg-blue-400/10 text-blue-400 border border-blue-400/20' :
-                        session.difficulty === 'Intermediate' ? 'bg-amber-400/10 text-amber-400 border border-amber-400/20' :
-                        'bg-rose-400/10 text-rose-400 border border-rose-400/20'
-                      }`}>
-                        {session.difficulty}
-                      </span>
+            <>
+              <div className="space-y-4">
+                {paginatedSessions.map((session) => (
+                  <div
+                    key={session._id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg border border-white/5 bg-white/5 p-4 transition hover:bg-white/10"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-bold text-slate-100">{session.role}</h4>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                          session.difficulty === 'Beginner' ? 'bg-blue-400/10 text-blue-400 border border-blue-400/20' :
+                          session.difficulty === 'Intermediate' ? 'bg-amber-400/10 text-amber-400 border border-amber-400/20' :
+                          'bg-rose-400/10 text-rose-400 border border-rose-400/20'
+                        }`}>
+                          {session.difficulty}
+                        </span>
+                      </div>
+                      {session.techStack && (
+                        <p className="text-xs text-slate-400">Focus: {session.techStack}</p>
+                      )}
+                      <div className="flex items-center gap-3 text-xs text-slate-500">
+                        <span className="flex items-center gap-1">
+                          <Clock size={12} />
+                          {new Date(session.createdAt).toLocaleDateString()}
+                        </span>
+                        <span>•</span>
+                        <span>{session.questionsCount} Questions</span>
+                      </div>
                     </div>
-                    {session.techStack && (
-                      <p className="text-xs text-slate-400">Focus: {session.techStack}</p>
-                    )}
-                    <div className="flex items-center gap-3 text-xs text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <Clock size={12} />
-                        {new Date(session.createdAt).toLocaleDateString()}
-                      </span>
-                      <span>•</span>
-                      <span>{session.questionsCount} Questions</span>
+
+                    <div className="flex items-center gap-4 self-end sm:self-center">
+                      {session.status === 'completed' ? (
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <p className="text-xs text-slate-400">Score</p>
+                            <span className={`text-lg font-extrabold ${
+                              session.overallScore >= 80 ? 'text-emerald-400' :
+                              session.overallScore >= 60 ? 'text-amber-400' :
+                              'text-rose-400'
+                            }`}>
+                              {session.overallScore}%
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => navigate(`/feedback/${session._id}`)}
+                            className="rounded-lg bg-white/10 hover:bg-white/20 px-4 py-2 text-sm font-semibold transition"
+                          >
+                            Feedback
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-xs font-semibold text-cyan-400 border border-cyan-400/20">
+                            In Progress
+                          </span>
+                          <button
+                            onClick={() => navigate(`/interview/${session._id}`)}
+                            className="rounded-lg bg-cyan-400 text-slate-950 hover:bg-cyan-300 px-4 py-2 text-sm font-bold transition shadow-md shadow-cyan-400/10"
+                          >
+                            Resume
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
+                ))}
+              </div>
 
-                  <div className="flex items-center gap-4 self-end sm:self-center">
-                    {session.status === 'completed' ? (
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="text-xs text-slate-400">Score</p>
-                          <span className={`text-lg font-extrabold ${
-                            session.overallScore >= 80 ? 'text-emerald-400' :
-                            session.overallScore >= 60 ? 'text-amber-400' :
-                            'text-rose-400'
-                          }`}>
-                            {session.overallScore}%
-                          </span>
-                        </div>
+              {/* Pagination controls */}
+              {totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
+                  <span className="text-xs text-slate-500">
+                    Showing {pageStart + 1}–{Math.min(pageStart + SESSIONS_PER_PAGE, sessions.length)} of {sessions.length} sessions
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={safePage === 1}
+                      className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-1.5 text-sm font-semibold text-slate-300 transition disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      <ChevronLeft size={14} />
+                      Prev
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                         <button
-                          onClick={() => navigate(`/feedback/${session._id}`)}
-                          className="rounded-lg bg-white/10 hover:bg-white/20 px-4 py-2 text-sm font-semibold transition"
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`h-8 w-8 rounded-lg text-sm font-bold transition ${
+                            page === safePage
+                              ? 'bg-cyan-400 text-slate-950'
+                              : 'border border-white/10 bg-white/5 hover:bg-white/10 text-slate-400'
+                          }`}
                         >
-                          Feedback
+                          {page}
                         </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3">
-                        <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-xs font-semibold text-cyan-400 border border-cyan-400/20">
-                          In Progress
-                        </span>
-                        <button
-                          onClick={() => navigate(`/interview/${session._id}`)}
-                          className="rounded-lg bg-cyan-400 text-slate-950 hover:bg-cyan-300 px-4 py-2 text-sm font-bold transition shadow-md shadow-cyan-400/10"
-                        >
-                          Resume
-                        </button>
-                      </div>
-                    )}
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={safePage === totalPages}
+                      className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-1.5 text-sm font-semibold text-slate-300 transition disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      Next
+                      <ChevronRight size={14} />
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       </div>
