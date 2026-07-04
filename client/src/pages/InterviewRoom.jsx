@@ -96,6 +96,7 @@ const InterviewRoom = () => {
   };
 
   const currentQuestion = questions[currentIdx];
+  const answeredCount = questions.filter((q) => !!(answers[q._id] || '').trim()).length;
 
   const handleSaveDraft = async () => {
     if (!session || questions.length === 0) return;
@@ -273,6 +274,26 @@ const InterviewRoom = () => {
           );
         })}
       </div>
+
+      {/* Answered-questions progress bar */}
+      {questions.length > 0 && (
+        <div className="mb-8">
+          <div className="mb-2 flex items-center justify-between text-xs text-slate-400">
+            <span>
+              {answeredCount} of {questions.length} question{questions.length !== 1 ? 's' : ''} answered
+            </span>
+            <span className={`font-semibold tabular-nums ${answeredCount === questions.length ? 'text-emerald-400' : 'text-cyan-400'}`}>
+              {Math.round((answeredCount / questions.length) * 100)}%
+            </span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ease-out ${answeredCount === questions.length ? 'bg-emerald-400' : 'bg-cyan-400'}`}
+              style={{ width: `${(answeredCount / questions.length) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Question Card */}
       {currentQuestion && (
