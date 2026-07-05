@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { createSession, getUserSessions } from '../services/sessionService';
 
 const SessionCardSkeleton = () => (
@@ -39,6 +39,9 @@ const Dashboard = () => {
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [difficultyFilter, setDifficultyFilter] = useState('all');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -80,18 +83,40 @@ const Dashboard = () => {
     }
   };
 
-  // Helper metrics
+  // Reset page to 1 when any filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, difficultyFilter]);
+
+  // Helper metrics (always over full sessions, not filtered)
   const completedInterviews = sessions.filter(s => s.status === 'completed');
   const totalCompleted = completedInterviews.length;
   const averageScore = totalCompleted > 0
     ? Math.round(completedInterviews.reduce((acc, curr) => acc + (curr.overallScore || 0), 0) / totalCompleted)
     : 0;
 
-  // Pagination
-  const totalPages = Math.max(1, Math.ceil(sessions.length / SESSIONS_PER_PAGE));
+  // Filtered sessions
+  const filteredSessions = sessions.filter((s) => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = !q || s.role.toLowerCase().includes(q) || (s.techStack || '').toLowerCase().includes(q);
+    const matchesStatus = statusFilter === 'all' || s.status === statusFilter;
+    const matchesDifficulty = difficultyFilter === 'all' || s.difficulty === difficultyFilter;
+    return matchesSearch && matchesStatus && matchesDifficulty;
+  });
+
+  // Pagination (over filtered results)
+  const totalPages = Math.max(1, Math.ceil(filteredSessions.length / SESSIONS_PER_PAGE));
   const safePage = Math.min(currentPage, totalPages);
   const pageStart = (safePage - 1) * SESSIONS_PER_PAGE;
-  const paginatedSessions = sessions.slice(pageStart, pageStart + SESSIONS_PER_PAGE);
+  const paginatedSessions = filteredSessions.slice(pageStart, pageStart + SESSIONS_PER_PAGE);
+
+  const hasActiveFilters = searchQuery || statusFilter !== 'all' || difficultyFilter !== 'all';
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setDifficultyFilter('all');
+  };
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10 text-white">
@@ -251,8 +276,87 @@ const Dashboard = () => {
 
         {/* Interview Sessions History */}
         <div className="rounded-xl border border-white/10 bg-white/5 p-6 shadow-lg lg:col-span-7">
-          <h2 className="text-xl font-bold tracking-tight mb-6">Interview History</h2>
-          
+          <div className="mb-6 flex flex-col gap-4">
+            <h2 className="text-xl font-bold tracking-tight">Interview History</h2>
+
+            {/* Search + filters */}
+            {!fetching && sessions.length > 0 && (
+              <div className="flex flex-col gap-3">
+                {/* Search box */}
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">
+                    <Search size={15} />
+                  </span>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by role or tech stack…"
+                    className="w-full rounded-lg border border-white/10 bg-slate-900/60 py-2 pl-9 pr-9 text-sm text-white placeholder-slate-500 outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white transition"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filter pills row */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Status filter */}
+                  <div className="flex items-center gap-1 text-xs">
+                    {[['all', 'All'], ['in-progress', 'In Progress'], ['completed', 'Completed']].map(([val, label]) => (
+                      <button
+                        key={val}
+                        onClick={() => setStatusFilter(val)}
+                        className={`rounded-full px-3 py-1 font-semibold border transition ${
+                          statusFilter === val
+                            ? 'bg-cyan-400 border-cyan-400 text-slate-950'
+                            : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <span className="text-white/20 text-xs hidden sm:block">|</span>
+
+                  {/* Difficulty filter */}
+                  <div className="flex items-center gap-1 text-xs">
+                    {[['all', 'Any Level'], ['Beginner', 'Beginner'], ['Intermediate', 'Intermediate'], ['Advanced', 'Advanced']].map(([val, label]) => (
+                      <button
+                        key={val}
+                        onClick={() => setDifficultyFilter(val)}
+                        className={`rounded-full px-3 py-1 font-semibold border transition ${
+                          difficultyFilter === val
+                            ? 'bg-cyan-400 border-cyan-400 text-slate-950'
+                            : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Clear all filters */}
+                  {hasActiveFilters && (
+                    <button
+                      onClick={clearFilters}
+                      className="ml-auto flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/10 transition"
+                    >
+                      <X size={11} />
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {fetching ? (
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => <SessionCardSkeleton key={i} />)}
@@ -264,6 +368,17 @@ const Dashboard = () => {
               <p className="mt-1 text-sm text-slate-400 max-w-xs mx-auto">
                 Select your parameters and click "Generate AI Interview" to practice your skills.
               </p>
+            </div>
+          ) : filteredSessions.length === 0 ? (
+            <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-white/10 p-6 text-center">
+              <Search size={32} className="text-slate-500 mb-3" />
+              <h3 className="text-base font-bold text-slate-200">No sessions match your filters</h3>
+              <button
+                onClick={clearFilters}
+                className="mt-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-1.5 text-sm font-semibold text-slate-300 transition"
+              >
+                Clear filters
+              </button>
             </div>
           ) : (
             <>
@@ -339,7 +454,7 @@ const Dashboard = () => {
               {totalPages > 1 && (
                 <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
                   <span className="text-xs text-slate-500">
-                    Showing {pageStart + 1}–{Math.min(pageStart + SESSIONS_PER_PAGE, sessions.length)} of {sessions.length} sessions
+                    Showing {pageStart + 1}–{Math.min(pageStart + SESSIONS_PER_PAGE, filteredSessions.length)} of {filteredSessions.length}{hasActiveFilters ? ` of ${sessions.length}` : ''} sessions
                   </span>
                   <div className="flex items-center gap-2">
                     <button
