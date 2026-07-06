@@ -4,7 +4,8 @@ import {
   getSessions,
   getSessionById,
   saveAnswers,
-  submitSession
+  submitSession,
+  getQuestionHint
 } from '../controllers/sessionController.js';
 import protect from '../middleware/authMiddleware.js';
 
@@ -25,5 +26,8 @@ router.route('/:id/answers')
 
 router.route('/:id/submit')
   .post(submitSession);
+
+router.route('/:id/hint')
+  .post(getQuestionHint);
 
 export default router;

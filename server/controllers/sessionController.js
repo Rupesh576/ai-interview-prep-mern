@@ -1,6 +1,6 @@
 import InterviewSession from '../models/InterviewSession.js';
 import Question from '../models/Question.js';
-import { generateQuestions, evaluateAnswers } from '../services/openaiService.js';
+import { generateQuestions, evaluateAnswers, generateHint } from '../services/openaiService.js';
 
 // @desc    Create a new interview session and generate questions
 // @route   POST /api/sessions
@@ -219,6 +219,45 @@ export const submitSession = async (req, res, next) => {
       session,
       questions: finalizedQuestions
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get an AI-generated hint for a specific question in a session
+// @route   POST /api/sessions/:id/hint
+// @access  Private
+export const getQuestionHint = async (req, res, next) => {
+  try {
+    const { questionId } = req.body;
+
+    if (!questionId) {
+      res.status(400);
+      throw new Error('Please provide a questionId');
+    }
+
+    const session = await InterviewSession.findById(req.params.id);
+
+    if (!session) {
+      res.status(404);
+      throw new Error('Interview session not found');
+    }
+
+    if (session.user.toString() !== req.user._id.toString()) {
+      res.status(403);
+      throw new Error('Not authorized to access this session');
+    }
+
+    const question = await Question.findOne({ _id: questionId, session: session._id });
+
+    if (!question) {
+      res.status(404);
+      throw new Error('Question not found in this session');
+    }
+
+    const hint = await generateHint(session.role, session.difficulty, question.questionText);
+
+    res.status(200).json({ success: true, hint });
   } catch (error) {
     next(error);
   }

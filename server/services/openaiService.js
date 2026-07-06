@@ -138,6 +138,76 @@ const generateMockEvaluations = (role, difficulty, techStack, qaList) => {
   };
 };
 
+// Keyword-based mock hints for offline/fallback mode
+const generateMockHint = (questionText) => {
+  const text = questionText.toLowerCase();
+  if (text.includes('virtual dom')) {
+    return "Think about why directly manipulating the real DOM is expensive. React keeps a lightweight copy of the DOM in memory — consider how it compares two versions of this copy to decide the minimum set of real changes needed.";
+  }
+  if (text.includes('state') && text.includes('props')) {
+    return "Consider who owns and controls each piece of data. One flows down from a parent and is read-only from the child's perspective; the other is managed locally within the component and can change over time.";
+  }
+  if (text.includes('usememo') || text.includes('react.memo') || text.includes('memo')) {
+    return "Think about when re-renders are unnecessary. Both tools help React skip expensive work it already did — one wraps a component, the other caches a computed value. Focus on the difference in *what* they memoize.";
+  }
+  if (text.includes('useeffect') || text.includes('hooks') || text.includes('hook')) {
+    return "Consider the three things you can control with this hook: what runs (the function), when it runs (the dependency array), and how to clean up after it. Think about what happens when dependencies change vs. an empty array vs. no array.";
+  }
+  if (text.includes('event loop')) {
+    return "Node.js is single-threaded but non-blocking. Think about how it can start a file read and then immediately move on to other work — there must be a mechanism that checks for completed I/O callbacks and runs them. What are the phases of that mechanism?";
+  }
+  if (text.includes('sql') || text.includes('nosql')) {
+    return "Consider the trade-offs around schema strictness, relationships, and scaling. Think about ACID compliance, whether your data is structured or unstructured, and whether you need to scale reads/writes horizontally.";
+  }
+  if (text.includes('middleware')) {
+    return "Think of middleware as a pipeline. Each function in Express receives the request and response objects plus a 'next' callback. What happens if you call next()? What happens if you don't? Consider error-handling middleware as a special case.";
+  }
+  if (text.includes('jwt') || text.includes('authentication') || text.includes('auth')) {
+    return "Break this into three parts: how the token is created (signing), how it travels (typically in headers), and how the server validates it without a database lookup. Think about what information is stored inside the token and why that matters.";
+  }
+  if (text.includes('rest') || text.includes('api')) {
+    return "REST is defined by constraints, not a standard. Focus on statelessness, uniform interface (HTTP verbs + resource nouns), and client-server separation. Think about what makes a URL 'RESTful' and how HTTP status codes map to outcomes.";
+  }
+  if (text.includes('context') || text.includes('redux') || text.includes('prop drill')) {
+    return "Prop drilling becomes a problem when data needs to pass through many intermediate components that don't use it. Think about what tool gives you a global store vs. a scoped provider, and what the trade-off is between simplicity and scalability.";
+  }
+  if (text.includes('solid') || text.includes('design pattern') || text.includes('architecture')) {
+    return "Start by naming the principle or pattern, then give its core rule in one sentence, and finally a concrete code-level example. Real-world examples (even small ones) are more convincing than abstract definitions alone.";
+  }
+  return "Start by defining the core concept clearly in 1–2 sentences. Then explain *why* it exists — what problem it solves. Finally, mention any trade-offs, edge cases, or alternatives you know. Concrete examples always strengthen a technical answer.";
+};
+
+/**
+ * Generates a directional hint for a single interview question without revealing the full answer.
+ */
+export const generateHint = async (role, difficulty, questionText) => {
+  if (!openai) {
+    console.log("OpenAI API Key is missing or default. Generating mock hint...");
+    return generateMockHint(questionText);
+  }
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are a helpful interview coach. When given an interview question, provide a brief, directional hint (2-3 sentences maximum) that helps the candidate think in the right direction without giving away the complete answer. The hint should point to the key concept, prompt them to consider a trade-off, or suggest an angle of approach — but must not solve the question for them.`
+        },
+        {
+          role: "user",
+          content: `Give me a hint for this ${difficulty} level ${role} interview question: "${questionText}"`
+        }
+      ]
+    });
+    return response.choices[0].message.content.trim();
+  } catch (error) {
+    console.error("OpenAI Hint Generation Error:", error.message);
+    console.log("Falling back to mock hint...");
+    return generateMockHint(questionText);
+  }
+};
+
 /**
  * Generates interview questions based on role, difficulty, tech stack, and count.
  */

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Save, CheckCircle, AlertCircle, Loader, Timer } from 'lucide-react';
-import { getSessionDetails, saveDraftAnswers, submitInterview } from '../services/sessionService';
+import { ArrowLeft, ArrowRight, Save, CheckCircle, AlertCircle, Loader, Timer, Lightbulb } from 'lucide-react';
+import { getSessionDetails, saveDraftAnswers, submitInterview, getQuestionHint } from '../services/sessionService';
 
 const InterviewRoom = () => {
   const { id } = useParams();
@@ -18,6 +18,8 @@ const InterviewRoom = () => {
   const [error, setError] = useState('');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const timerRef = useRef(null);
+  const [hints, setHints] = useState({}); // { questionId: hintText }
+  const [hintLoading, setHintLoading] = useState({}); // { questionId: bool }
 
   // Fetch session details on mount
   useEffect(() => {
@@ -86,6 +88,20 @@ const InterviewRoom = () => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  const handleGetHint = async (qId) => {
+    if (hints[qId] || hintLoading[qId]) return;
+    setHintLoading((prev) => ({ ...prev, [qId]: true }));
+    try {
+      const data = await getQuestionHint(id, qId);
+      setHints((prev) => ({ ...prev, [qId]: data.hint }));
+    } catch (err) {
+      console.error('Failed to load hint:', err);
+      setHints((prev) => ({ ...prev, [qId]: 'Could not load a hint. Please try again.' }));
+    } finally {
+      setHintLoading((prev) => ({ ...prev, [qId]: false }));
+    }
   };
 
   const handleAnswerChange = (qId, val) => {
@@ -304,6 +320,30 @@ const InterviewRoom = () => {
           <h2 className="mt-3 text-xl font-semibold leading-relaxed text-slate-100 md:text-2xl">
             {currentQuestion.questionText}
           </h2>
+
+          {/* Hint section */}
+          <div className="mt-5">
+            {hints[currentQuestion._id] ? (
+              <div className="flex gap-3 rounded-lg border border-amber-400/20 bg-amber-400/5 p-4">
+                <Lightbulb size={16} className="mt-0.5 shrink-0 text-amber-400" />
+                <p className="text-sm text-amber-200/90 leading-relaxed">{hints[currentQuestion._id]}</p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleGetHint(currentQuestion._id)}
+                disabled={hintLoading[currentQuestion._id]}
+                className="inline-flex items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-400/5 hover:bg-amber-400/10 px-4 py-2 text-sm font-semibold text-amber-400 transition disabled:opacity-60 disabled:pointer-events-none"
+              >
+                {hintLoading[currentQuestion._id] ? (
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
+                ) : (
+                  <Lightbulb size={14} />
+                )}
+                {hintLoading[currentQuestion._id] ? 'Getting hint…' : 'Get a Hint'}
+              </button>
+            )}
+          </div>
 
           <div className="mt-8">
             <label className="block text-sm font-semibold text-slate-300" htmlFor="answer-input">

@@ -24,3 +24,8 @@ export const submitInterview = async (sessionId) => {
   const response = await api.post(`/sessions/${sessionId}/submit`);
   return response.data;
 };
+
+export const getQuestionHint = async (sessionId, questionId) => {
+  const response = await api.post(`/sessions/${sessionId}/hint`, { questionId });
+  return response.data;
+};
