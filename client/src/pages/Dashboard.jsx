@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw } from 'lucide-react';
 import { createSession, getUserSessions } from '../services/sessionService';
 
 const SessionCardSkeleton = () => (
@@ -30,11 +30,15 @@ const SessionCardSkeleton = () => (
 const SESSIONS_PER_PAGE = 5;
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const prefill = location.state?.prefill;
+
   const [sessions, setSessions] = useState([]);
-  const [role, setRole] = useState('Frontend Engineer');
-  const [difficulty, setDifficulty] = useState('Intermediate');
-  const [techStack, setTechStack] = useState('');
-  const [questionsCount, setQuestionsCount] = useState('5');
+  const [role, setRole] = useState(prefill?.role || 'Frontend Engineer');
+  const [difficulty, setDifficulty] = useState(prefill?.difficulty || 'Intermediate');
+  const [techStack, setTechStack] = useState(prefill?.techStack || '');
+  const [questionsCount, setQuestionsCount] = useState(String(prefill?.questionsCount || '5'));
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
@@ -42,7 +46,6 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
-  const navigate = useNavigate();
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -186,6 +189,13 @@ const Dashboard = () => {
         <div className="rounded-xl border border-white/10 bg-white/5 p-6 shadow-lg lg:col-span-5 h-fit">
           <h2 className="text-xl font-bold tracking-tight mb-6">New Mock Interview</h2>
           
+          {prefill && (
+            <div className="mb-5 flex items-center gap-2 rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-4 py-3 text-xs text-cyan-400">
+              <RotateCcw size={13} className="shrink-0" />
+              <span>Settings pre-filled from your last session — edit or start as-is.</span>
+            </div>
+          )}
+
           <form onSubmit={handleStartInterview} className="space-y-6">
             <div>
               <label className="block text-sm font-semibold text-slate-300" htmlFor="role">

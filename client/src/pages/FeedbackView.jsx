@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Award, ArrowLeft, ArrowRight, ClipboardCheck, Sparkles, MessageCircle, AlertCircle, ChevronDown, ChevronUp, Copy, CheckCheck } from 'lucide-react';
+import { Award, ArrowLeft, ArrowRight, ClipboardCheck, Sparkles, MessageCircle, AlertCircle, ChevronDown, ChevronUp, Copy, CheckCheck, RotateCcw } from 'lucide-react';
 import { getSessionDetails } from '../services/sessionService';
 
 const FeedbackView = () => {
@@ -37,6 +37,19 @@ const FeedbackView = () => {
 
   const toggleExpand = (qId) => {
     setExpandedQuestionId(expandedQuestionId === qId ? null : qId);
+  };
+
+  const handleRetryInterview = () => {
+    navigate('/', {
+      state: {
+        prefill: {
+          role: session.role,
+          difficulty: session.difficulty,
+          techStack: session.techStack || '',
+          questionsCount: session.questionsCount || 5
+        }
+      }
+    });
   };
 
   const handleCopyFeedback = async () => {
@@ -298,6 +311,14 @@ const FeedbackView = () => {
               Copy Feedback Report
             </>
           )}
+        </button>
+
+        <button
+          onClick={handleRetryInterview}
+          className="inline-flex items-center gap-2 rounded-lg border border-cyan-400/30 bg-cyan-400/10 hover:bg-cyan-400/20 px-6 py-3 font-bold text-cyan-400 transition"
+        >
+          <RotateCcw size={16} />
+          Retry Same Settings
         </button>
 
         <button
