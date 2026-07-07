@@ -1,16 +1,16 @@
-import OpenAI from 'openai';
+import Gemini from 'openai';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const isApiKeyValid = process.env.OPENAI_API_KEY && 
-  process.env.OPENAI_API_KEY !== 'your_api_key_here' && 
-  process.env.OPENAI_API_KEY.trim() !== '';
+const isApiKeyValid = process.env.GEMINI_API_KEY &&
+  process.env.GEMINI_API_KEY.trim() !== '';
 
 let openai = null;
 if (isApiKeyValid) {
-  openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
+  openai = new Gemini({
+    apiKey: process.env.GEMINI_API_KEY,
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
   });
 }
 
@@ -213,13 +213,13 @@ export const generateHint = async (role, difficulty, questionText) => {
  */
 export const generateQuestions = async (role, difficulty, techStack, questionsCount = 5) => {
   if (!openai) {
-    console.log("OpenAI API Key is missing or default. Generating mock questions...");
+    console.log("Gemini API Key is missing or default. Generating mock questions...");
     return generateMockQuestions(role, difficulty, techStack, questionsCount);
   }
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gemini-2.5-flash",
       messages: [
         {
           role: "system",
@@ -233,17 +233,16 @@ Do not include any other text, markdown formatting (outside of standard JSON syn
           content: `Generate exactly ${questionsCount} interview questions for a ${difficulty} level ${role} position.
 The questions should focus on the following tech stack / topics: ${techStack || 'general software engineering concepts'}.`
         }
-      ],
-      response_format: { type: "json_object" }
+      ]
     });
 
     const result = JSON.parse(response.choices[0].message.content);
     if (result && Array.isArray(result.questions)) {
       return result.questions.slice(0, questionsCount);
     }
-    throw new Error("Invalid format returned by OpenAI");
+    throw new Error("Invalid format returned by Gemini");
   } catch (error) {
-    console.error("OpenAI Question Generation Error:", error.message);
+    console.error("Gemini Question Generation Error:", error.message);
     console.log("Falling back to mock questions...");
     return generateMockQuestions(role, difficulty, techStack, questionsCount);
   }
@@ -258,13 +257,13 @@ The questions should focus on the following tech stack / topics: ${techStack || 
  */
 export const evaluateAnswers = async (role, difficulty, techStack, questionsAndAnswers) => {
   if (!openai) {
-    console.log("OpenAI API Key is missing or default. Generating mock evaluations...");
+    console.log("Gemini API Key is missing or default. Generating mock evaluations...");
     return generateMockEvaluations(role, difficulty, techStack, questionsAndAnswers);
   }
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gemini-2.5-flash",
       messages: [
         {
           role: "system",
@@ -298,17 +297,16 @@ Question ${index + 1}: ${qa.questionText}
 User's Answer: ${qa.userAnswer || 'No answer provided.'}
 `).join('\n')}`
         }
-      ],
-      response_format: { type: "json_object" }
+      ]
     });
 
     const result = JSON.parse(response.choices[0].message.content);
     if (result && typeof result.overallScore === 'number' && Array.isArray(result.evaluations)) {
       return result;
     }
-    throw new Error("Invalid feedback format returned by OpenAI");
+    throw new Error("Invalid feedback format returned by Gemini");
   } catch (error) {
-    console.error("OpenAI Evaluation Error:", error.message);
+    console.error("Gemini Evaluation Error:", error.message);
     console.log("Falling back to mock evaluations...");
     return generateMockEvaluations(role, difficulty, techStack, questionsAndAnswers);
   }
