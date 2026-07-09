@@ -121,7 +121,7 @@ const FeedbackView = () => {
   }
 
   const score = session.overallScore || 0;
-  
+
   // Custom styling attributes based on score ranges
   let scoreColorClass = 'text-rose-400 border-rose-500/20 bg-rose-500/5';
   let ratingLabel = 'Needs Practice';
@@ -136,6 +136,17 @@ const FeedbackView = () => {
     ratingLabel = 'Solid Effort';
     badgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
   }
+
+  // Per-question score tiers
+  const excellentCount = questions.filter(q => (q.score || 0) >= 8).length;
+  const goodCount = questions.filter(q => (q.score || 0) >= 6 && (q.score || 0) < 8).length;
+  const needsWorkCount = questions.filter(q => (q.score || 0) < 6).length;
+
+  const scoreTiers = [
+    { label: 'Excellent', range: '8–10', count: excellentCount, barColor: 'bg-emerald-400', textColor: 'text-emerald-400' },
+    { label: 'Good', range: '6–7', count: goodCount, barColor: 'bg-amber-400', textColor: 'text-amber-400' },
+    { label: 'Needs Work', range: '0–5', count: needsWorkCount, barColor: 'bg-rose-400', textColor: 'text-rose-400' },
+  ];
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10 text-white">
@@ -208,6 +219,34 @@ const FeedbackView = () => {
           </p>
         </div>
       </div>
+
+      {/* Per-Question Score Breakdown */}
+      {questions.length > 0 && (
+        <div className="mb-10 rounded-xl border border-white/10 bg-white/5 p-6">
+          <h3 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">
+            Score Breakdown
+          </h3>
+          <div className="space-y-4">
+            {scoreTiers.map(({ label, range, count, barColor, textColor }) => (
+              <div key={label} className="flex items-center gap-4">
+                <div className="flex w-32 shrink-0 items-center justify-between gap-2">
+                  <span className={`text-sm font-semibold ${textColor}`}>{label}</span>
+                  <span className="text-xs text-slate-500 tabular-nums">{range}/10</span>
+                </div>
+                <div className="relative flex-1 h-2 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-out ${barColor}`}
+                    style={{ width: `${(count / questions.length) * 100}%` }}
+                  />
+                </div>
+                <span className="w-20 shrink-0 text-right text-xs font-semibold text-slate-400 tabular-nums">
+                  {count} of {questions.length}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Individual Question Feedback Section */}
       <div className="space-y-6">

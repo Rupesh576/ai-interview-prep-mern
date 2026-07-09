@@ -1,3 +1,14 @@
+## 2026-07-09 — Add per-question score breakdown to FeedbackView
+
+**What:** Added a "Score Breakdown" section to the FeedbackView page, placed between the overall summary row and the per-question accordion. It displays three tier rows — Excellent (8–10/10), Good (6–7/10), and Needs Work (0–5/10) — each with a labelled progress bar that fills proportionally to how many questions landed in that tier. A count label on the right shows "X of Y" for each tier. All three bars animate in with a 700 ms ease-out transition on first render. The section is only rendered when there is at least one question, so it never appears on empty sessions. No backend changes were required — the tier counts are computed client-side from the `questions` array already fetched by `getSessionDetails`.
+
+**Why:** The existing radial score gauge tells the user their aggregate percentage but gives no sense of consistency: a score of 70 % could mean all questions hovered around 7/10, or it could mean half were excellent and half were poor. The breakdown strip resolves that ambiguity at a glance, showing the distribution before the user even opens the accordion. It directly improves the feedback view's analytical value without adding any new dependencies or API calls.
+
+**Files changed:**
+- `client/src/pages/FeedbackView.jsx` — added `excellentCount`, `goodCount`, `needsWorkCount` derived values; added `scoreTiers` array; added the Score Breakdown card JSX block between the summary grid and the question accordion
+
+---
+
 ## 2026-07-07 — Add "Retry Same Settings" button to FeedbackView
 
 **What:** Added a "Retry Same Settings" button to the actions footer on the FeedbackView page, placed between the existing "Copy Feedback Report" and "Practice Another Interview" buttons. Clicking it calls `navigate('/', { state: { prefill: {...} } })` with the completed session's role, difficulty, techStack, and questionsCount. On the Dashboard, `useLocation` now reads that router state on mount and uses it to pre-seed all four form fields — role input, difficulty pill selection, tech stack input, and questions-count select. When the form is pre-filled, a small cyan banner appears at the top of the form telling the user their settings have been restored so they can start immediately or adjust before generating a new interview.
