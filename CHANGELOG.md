@@ -1,3 +1,14 @@
+## 2026-07-13 — Add debounced auto-save with status indicator to InterviewRoom
+
+**What:** Added debounced auto-save to the answer textarea in the InterviewRoom page. Two seconds after a user stops typing, the current answers are automatically saved to the server via the existing `saveDraftAnswers` API — no manual click required. An auto-save status indicator appears below the Save Draft and Submit Interview buttons: it shows a small spinner with "Auto-saving…" while the request is in flight, then switches to a green checkmark with "Auto-saved HH:MM" once the save succeeds. The auto-save timer is cancelled immediately when the user clicks Submit Interview, preventing any race condition between the auto-save and the final submission save. On unmount the timer is also cleared via a cleanup effect. Failures are swallowed silently so they never distract the user mid-answer.
+
+**Why:** Previously, draft answers were only persisted when the user explicitly clicked "Save Draft" or navigated between questions (which triggers a save). If a user typed a detailed answer for the current question and closed the tab or refreshed before moving on, that answer was lost. Debounced auto-save eliminates that risk with no extra user action required. The status indicator gives confidence that the work is safe without cluttering the UI — it occupies a fixed-height slot that is invisible until the first auto-save fires.
+
+**Files changed:**
+- `client/src/pages/InterviewRoom.jsx` — added `autoSaveTimerRef`, `lastSavedAt`, and `autoSaving` state; added `doAutoSaveSnapshot` async function; modified `handleAnswerChange` to schedule a 2-second debounced auto-save on every keystroke; added `clearTimeout(autoSaveTimerRef.current)` in `handleSubmitInterview`; added cleanup `useEffect`; added auto-save status row below the action buttons in the header
+
+---
+
 ## 2026-07-09 — Add per-question score breakdown to FeedbackView
 
 **What:** Added a "Score Breakdown" section to the FeedbackView page, placed between the overall summary row and the per-question accordion. It displays three tier rows — Excellent (8–10/10), Good (6–7/10), and Needs Work (0–5/10) — each with a labelled progress bar that fills proportionally to how many questions landed in that tier. A count label on the right shows "X of Y" for each tier. All three bars animate in with a 700 ms ease-out transition on first render. The section is only rendered when there is at least one question, so it never appears on empty sessions. No backend changes were required — the tier counts are computed client-side from the `questions` array already fetched by `getSessionDetails`.

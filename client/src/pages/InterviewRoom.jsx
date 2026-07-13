@@ -20,6 +20,9 @@ const InterviewRoom = () => {
   const timerRef = useRef(null);
   const [hints, setHints] = useState({}); // { questionId: hintText }
   const [hintLoading, setHintLoading] = useState({}); // { questionId: bool }
+  const autoSaveTimerRef = useRef(null);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [autoSaving, setAutoSaving] = useState(false);
 
   // Fetch session details on mount
   useEffect(() => {
@@ -84,6 +87,11 @@ const InterviewRoom = () => {
     return () => clearInterval(timerRef.current);
   }, [session]);
 
+  // Clean up auto-save timer on unmount
+  useEffect(() => {
+    return () => clearTimeout(autoSaveTimerRef.current);
+  }, []);
+
   const formatElapsed = (secs) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
@@ -104,11 +112,30 @@ const InterviewRoom = () => {
     }
   };
 
+  const doAutoSaveSnapshot = async (answersSnapshot) => {
+    if (!session) return;
+    setAutoSaving(true);
+    try {
+      const payload = Object.keys(answersSnapshot).map((qId) => ({
+        questionId: qId,
+        userAnswer: answersSnapshot[qId]
+      }));
+      await saveDraftAnswers(id, payload);
+      setLastSavedAt(new Date());
+    } catch {
+      // Silent — don't interrupt the user with auto-save failures
+    } finally {
+      setAutoSaving(false);
+    }
+  };
+
   const handleAnswerChange = (qId, val) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [qId]: val
-    }));
+    setAnswers((prev) => {
+      const next = { ...prev, [qId]: val };
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = setTimeout(() => doAutoSaveSnapshot(next), 2000);
+      return next;
+    });
   };
 
   const currentQuestion = questions[currentIdx];
@@ -155,6 +182,7 @@ const InterviewRoom = () => {
     }
 
     clearInterval(timerRef.current);
+    clearTimeout(autoSaveTimerRef.current);
     setSubmitting(true);
     setError('');
 
@@ -233,27 +261,42 @@ const InterviewRoom = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleSaveDraft}
-            disabled={saving}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-2 text-sm font-semibold transition disabled:opacity-50"
-          >
-            {saving ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            ) : (
-              <Save size={16} />
-            )}
-            {saving ? 'Saving...' : 'Save Draft'}
-          </button>
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSaveDraft}
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-2 text-sm font-semibold transition disabled:opacity-50"
+            >
+              {saving ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <Save size={16} />
+              )}
+              {saving ? 'Saving...' : 'Save Draft'}
+            </button>
 
-          <button
-            onClick={handleSubmitInterview}
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 px-4 py-2 text-sm font-bold text-slate-950 transition shadow-md shadow-emerald-500/15"
-          >
-            <CheckCircle size={16} />
-            Submit Interview
-          </button>
+            <button
+              onClick={handleSubmitInterview}
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 px-4 py-2 text-sm font-bold text-slate-950 transition shadow-md shadow-emerald-500/15"
+            >
+              <CheckCircle size={16} />
+              Submit Interview
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 h-4">
+            {autoSaving ? (
+              <>
+                <div className="h-3 w-3 animate-spin rounded-full border border-slate-500 border-t-transparent" />
+                <span>Auto-saving…</span>
+              </>
+            ) : lastSavedAt ? (
+              <>
+                <CheckCircle size={11} className="text-emerald-500/70" />
+                <span>Auto-saved {lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
 
