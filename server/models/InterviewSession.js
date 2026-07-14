@@ -39,6 +39,10 @@ const interviewSessionSchema = new mongoose.Schema(
     feedbackSummary: {
       type: String,
       default: ''
+    },
+    duration: {
+      type: Number,  // elapsed seconds from session start to submission
+      min: 0
     }
   },
   {

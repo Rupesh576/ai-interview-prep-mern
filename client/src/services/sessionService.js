@@ -20,8 +20,8 @@ export const saveDraftAnswers = async (sessionId, answers) => {
   return response.data;
 };
 
-export const submitInterview = async (sessionId) => {
-  const response = await api.post(`/sessions/${sessionId}/submit`);
+export const submitInterview = async (sessionId, duration) => {
+  const response = await api.post(`/sessions/${sessionId}/submit`, { duration });
   return response.data;
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw } from 'lucide-react';
+import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer } from 'lucide-react';
 import { createSession, getUserSessions } from '../services/sessionService';
 
 const SessionCardSkeleton = () => (
@@ -114,6 +114,12 @@ const Dashboard = () => {
   const paginatedSessions = filteredSessions.slice(pageStart, pageStart + SESSIONS_PER_PAGE);
 
   const hasActiveFilters = searchQuery || statusFilter !== 'all' || difficultyFilter !== 'all';
+
+  const formatDuration = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -419,6 +425,15 @@ const Dashboard = () => {
                         </span>
                         <span>•</span>
                         <span>{session.questionsCount} Questions</span>
+                        {session.duration > 0 && (
+                          <>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Timer size={11} className="text-cyan-400/60" />
+                              {formatDuration(session.duration)}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
 

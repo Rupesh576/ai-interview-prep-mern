@@ -194,8 +194,8 @@ const InterviewRoom = () => {
       }));
       await saveDraftAnswers(id, answersPayload);
 
-      // Trigger AI evaluation
-      await submitInterview(id);
+      // Trigger AI evaluation (pass elapsed seconds so it can be stored)
+      await submitInterview(id, elapsedSeconds);
       navigate(`/feedback/${id}`);
     } catch (err) {
       console.error("Failed to submit interview:", err);

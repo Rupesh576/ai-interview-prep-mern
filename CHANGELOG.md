@@ -1,3 +1,19 @@
+## 2026-07-14 — Track and display interview session duration
+
+**What:** Added full-stack interview duration tracking. When a user submits an interview, the elapsed time (already counted by the existing InterviewRoom timer) is now sent to the server and persisted in the database. On the FeedbackView page, a timer icon and `MM:SS` duration label appear in the session metadata header alongside the role, difficulty, and date fields — but only when a duration was recorded, so older sessions without it are unaffected. In the Dashboard Interview History panel, each completed session card also shows the session duration in the date/questions metadata row, making it easy to compare how long different sessions took at a glance. A `formatDuration` helper converts raw seconds to a consistent `MM:SS` format in both views.
+
+**Why:** The InterviewRoom already had a live elapsed-time counter, but that data evaporated the moment the user navigated away from the page. Persisting duration closes that gap and adds a meaningful dimension to session history: users can track whether they're getting faster on a role over time, spot sessions where they rushed or over-thought, and set personal time goals. The change required zero new dependencies and zero new routes — it piggybacks on the existing submit endpoint by accepting an optional `duration` field in the request body.
+
+**Files changed:**
+- `server/models/InterviewSession.js` — added optional `duration` field (Number, in seconds)
+- `server/controllers/sessionController.js` — destructure `duration` from request body in `submitSession`; persist it to the session document when valid
+- `client/src/services/sessionService.js` — updated `submitInterview` to accept and forward a `duration` argument
+- `client/src/pages/InterviewRoom.jsx` — pass `elapsedSeconds` to `submitInterview` call
+- `client/src/pages/FeedbackView.jsx` — added `Timer` icon import; added `formatDuration` helper; added conditional duration display in the header metadata row
+- `client/src/pages/Dashboard.jsx` — added `Timer` icon import; added `formatDuration` helper; added conditional duration display in each session card's metadata row
+
+---
+
 ## 2026-07-13 — Add debounced auto-save with status indicator to InterviewRoom
 
 **What:** Added debounced auto-save to the answer textarea in the InterviewRoom page. Two seconds after a user stops typing, the current answers are automatically saved to the server via the existing `saveDraftAnswers` API — no manual click required. An auto-save status indicator appears below the Save Draft and Submit Interview buttons: it shows a small spinner with "Auto-saving…" while the request is in flight, then switches to a green checkmark with "Auto-saved HH:MM" once the save succeeds. The auto-save timer is cancelled immediately when the user clicks Submit Interview, preventing any race condition between the auto-save and the final submission save. On unmount the timer is also cleared via a cleanup effect. Failures are swallowed silently so they never distract the user mid-answer.

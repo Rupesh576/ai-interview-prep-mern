@@ -153,6 +153,7 @@ export const saveAnswers = async (req, res, next) => {
 // @access  Private
 export const submitSession = async (req, res, next) => {
   try {
+    const { duration } = req.body;
     const session = await InterviewSession.findById(req.params.id);
 
     if (!session) {
@@ -210,6 +211,9 @@ export const submitSession = async (req, res, next) => {
     session.status = 'completed';
     session.overallScore = evaluationResult.overallScore;
     session.feedbackSummary = evaluationResult.feedbackSummary;
+    if (typeof duration === 'number' && duration >= 0) {
+      session.duration = Math.round(duration);
+    }
     await session.save();
 
     const finalizedQuestions = await Question.find({ session: session._id }).sort({ order: 1 });

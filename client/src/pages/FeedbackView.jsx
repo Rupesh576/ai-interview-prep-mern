@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Award, ArrowLeft, ArrowRight, ClipboardCheck, Sparkles, MessageCircle, AlertCircle, ChevronDown, ChevronUp, Copy, CheckCheck, RotateCcw } from 'lucide-react';
+import { Award, ArrowLeft, ArrowRight, ClipboardCheck, Sparkles, MessageCircle, AlertCircle, ChevronDown, ChevronUp, Copy, CheckCheck, RotateCcw, Timer } from 'lucide-react';
 import { getSessionDetails } from '../services/sessionService';
 
 const FeedbackView = () => {
@@ -122,6 +122,12 @@ const FeedbackView = () => {
 
   const score = session.overallScore || 0;
 
+  const formatDuration = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
   // Custom styling attributes based on score ranges
   let scoreColorClass = 'text-rose-400 border-rose-500/20 bg-rose-500/5';
   let ratingLabel = 'Needs Practice';
@@ -169,6 +175,15 @@ const FeedbackView = () => {
           <span>Focus: <strong className="text-slate-200">{session.techStack || 'General'}</strong></span>
           <span>•</span>
           <span>Date: <strong className="text-slate-200">{new Date(session.createdAt).toLocaleDateString()}</strong></span>
+          {session.duration > 0 && (
+            <>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                <Timer size={11} className="text-cyan-400" />
+                <strong className="text-slate-200 tabular-nums">{formatDuration(session.duration)}</strong>
+              </span>
+            </>
+          )}
         </div>
       </div>
 
