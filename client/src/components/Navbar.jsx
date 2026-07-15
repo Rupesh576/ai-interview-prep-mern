@@ -20,7 +20,7 @@ const Navbar = () => {
             <Brain size={22} className="animate-pulse" />
           </div>
           <span className="bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-xl font-bold tracking-tight text-transparent">
-            Antigravity Prep
+            InterviewLab
           </span>
         </Link>
 
