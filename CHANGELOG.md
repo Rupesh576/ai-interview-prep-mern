@@ -1,3 +1,14 @@
+## 2026-07-15 — Add personalised Coaching Insights panel to FeedbackView
+
+**What:** Added a "Coaching Insights" section to the FeedbackView page, placed between the Score Breakdown and the Individual Question Breakdown accordion. The section shows 1–3 compact, actionable tip cards derived entirely from the existing session data — no new API calls or backend changes needed. Three categories of tip are generated automatically: a score-based tip (emerald "Ready to level up" for ≥80%, cyan "Add structure and depth" for 60–79%, amber "Strengthen the fundamentals" for <60%), a rose-coloured blank-answer warning that appears whenever one or more questions were left unanswered (showing the exact count), and a violet short-answer tip that fires when the average answer is under 25 words (displaying the actual average). Each card shows a relevant Lucide icon, a bold title, and a one-sentence actionable description. The grid is responsive: 1 card stretches full-width, 2 cards use a 2-column layout, and 3 cards use a 3-column layout on large screens. The section is suppressed entirely if no questions exist.
+
+**Why:** The existing feedback view gives users a score and AI-written comments per question, but no guidance on what to change in their next session. Coaching Insights bridges that gap by translating raw scores and patterns into specific next steps — "try Advanced difficulty", "stop leaving questions blank", "write longer answers" — making the feedback view more diagnostic and directly actionable. All derivation is client-side from data already loaded, so it adds value with zero server cost or new dependencies.
+
+**Files changed:**
+- `client/src/pages/FeedbackView.jsx` — added `TrendingUp`, `BookOpen`, `Target` icon imports; added `unansweredCount`, `avgWordCount`, and `coachingTips` array derivations after the existing `scoreTiers` block; added the Coaching Insights JSX section (header + responsive card grid) between the Score Breakdown and Individual Question Feedback sections
+
+---
+
 ## 2026-07-14 — Track and display interview session duration
 
 **What:** Added full-stack interview duration tracking. When a user submits an interview, the elapsed time (already counted by the existing InterviewRoom timer) is now sent to the server and persisted in the database. On the FeedbackView page, a timer icon and `MM:SS` duration label appear in the session metadata header alongside the role, difficulty, and date fields — but only when a duration was recorded, so older sessions without it are unaffected. In the Dashboard Interview History panel, each completed session card also shows the session duration in the date/questions metadata row, making it easy to compare how long different sessions took at a glance. A `formatDuration` helper converts raw seconds to a consistent `MM:SS` format in both views.

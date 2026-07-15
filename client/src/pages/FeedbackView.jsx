@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Award, ArrowLeft, ArrowRight, ClipboardCheck, Sparkles, MessageCircle, AlertCircle, ChevronDown, ChevronUp, Copy, CheckCheck, RotateCcw, Timer } from 'lucide-react';
+import { Award, ArrowLeft, ArrowRight, ClipboardCheck, Sparkles, MessageCircle, AlertCircle, ChevronDown, ChevronUp, Copy, CheckCheck, RotateCcw, Timer, TrendingUp, BookOpen, Target } from 'lucide-react';
 import { getSessionDetails } from '../services/sessionService';
 
 const FeedbackView = () => {
@@ -154,6 +154,65 @@ const FeedbackView = () => {
     { label: 'Needs Work', range: '0–5', count: needsWorkCount, barColor: 'bg-rose-400', textColor: 'text-rose-400' },
   ];
 
+  // Coaching insights: derive personalised tips from session data
+  const unansweredCount = questions.filter(q => !q.userAnswer || !q.userAnswer.trim()).length;
+  const avgWordCount = questions.length > 0
+    ? Math.round(
+        questions.reduce((sum, q) => sum + (q.userAnswer || '').trim().split(/\s+/).filter(Boolean).length, 0)
+        / questions.length
+      )
+    : 0;
+
+  const coachingTips = [];
+
+  if (score >= 80) {
+    coachingTips.push({
+      Icon: TrendingUp,
+      iconCls: 'text-emerald-400',
+      cardCls: 'border-emerald-400/20 bg-emerald-500/5',
+      title: 'Ready to level up',
+      body: `Strong result at ${score}%. ${session.difficulty !== 'Advanced'
+        ? `Try ${session.difficulty === 'Beginner' ? 'Intermediate' : 'Advanced'} difficulty in your next session to keep challenging yourself.`
+        : 'Add a niche or specialised tech stack next time to keep the challenge high.'}`
+    });
+  } else if (score >= 60) {
+    coachingTips.push({
+      Icon: Target,
+      iconCls: 'text-cyan-400',
+      cardCls: 'border-cyan-400/20 bg-cyan-400/5',
+      title: 'Add structure and depth',
+      body: 'Your answers show solid fundamentals. Lift your score by applying a define → explain → example pattern and mentioning trade-offs where relevant.'
+    });
+  } else {
+    coachingTips.push({
+      Icon: BookOpen,
+      iconCls: 'text-amber-400',
+      cardCls: 'border-amber-400/20 bg-amber-500/5',
+      title: 'Strengthen the fundamentals',
+      body: 'Review core concepts before your next session. Hands-on practice — small projects or official docs — makes a bigger difference than re-reading notes.'
+    });
+  }
+
+  if (unansweredCount > 0) {
+    coachingTips.push({
+      Icon: AlertCircle,
+      iconCls: 'text-rose-400',
+      cardCls: 'border-rose-400/20 bg-rose-500/5',
+      title: `${unansweredCount} blank answer${unansweredCount > 1 ? 's' : ''}`,
+      body: 'Never skip a question — a partial answer that shows your reasoning scores better than silence. Attempt every question even with limited knowledge.'
+    });
+  }
+
+  if (coachingTips.length < 3 && avgWordCount > 0 && avgWordCount < 25) {
+    coachingTips.push({
+      Icon: MessageCircle,
+      iconCls: 'text-violet-400',
+      cardCls: 'border-violet-400/20 bg-violet-500/5',
+      title: `Short answers (avg. ${avgWordCount} words)`,
+      body: 'Aim for 50–100 words per answer: state the concept, explain how it works, then give a concrete example. More depth signals expertise to the evaluator.'
+    });
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-6 py-10 text-white">
       {/* Back to Dashboard Link */}
@@ -257,6 +316,29 @@ const FeedbackView = () => {
                 <span className="w-20 shrink-0 text-right text-xs font-semibold text-slate-400 tabular-nums">
                   {count} of {questions.length}
                 </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Coaching Insights */}
+      {coachingTips.length > 0 && (
+        <div className="mb-10 rounded-xl border border-white/10 bg-white/5 p-6">
+          <div className="mb-5 flex items-center gap-2">
+            <Award size={16} className="text-cyan-400" />
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+              Coaching Insights
+            </h3>
+          </div>
+          <div className={`grid gap-4 ${coachingTips.length === 1 ? 'grid-cols-1' : coachingTips.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-3'}`}>
+            {coachingTips.map(({ Icon, iconCls, cardCls, title, body }) => (
+              <div key={title} className={`rounded-lg border p-4 ${cardCls}`}>
+                <div className="mb-2 flex items-center gap-2">
+                  <Icon size={15} className={iconCls} />
+                  <span className="text-sm font-semibold text-slate-200">{title}</span>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">{body}</p>
               </div>
             ))}
           </div>
