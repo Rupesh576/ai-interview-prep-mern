@@ -1,3 +1,14 @@
+## 2026-07-16 — Add loading skeletons to FeedbackView
+
+**What:** Replaced the bare spinner on the FeedbackView loading state with a full-page `FeedbackSkeleton` component that mirrors the actual page structure. The skeleton renders animated pulsing placeholder shapes for every section: the back-button link, the header (eyebrow label, title, metadata row), the two-column summary row (circular score gauge + AI summary card), the Score Breakdown card with three tier rows, the Coaching Insights card with a 3-column grid of tip placeholders, and four accordion rows for the question breakdown. All shapes use Tailwind's `animate-pulse` on the root wrapper so the animation is coordinated. No new dependencies were added.
+
+**Why:** The Dashboard already has proper skeleton loading (added on 2026-07-02), but FeedbackView still showed a bare centered spinner — creating an inconsistent experience between the two most-visited pages. Skeleton screens are known to feel faster than spinners because they give the user a preview of the content structure rather than an indefinite wait signal. Matching the FeedbackView to the Dashboard pattern makes the app feel more polished and finished across all its pages.
+
+**Files changed:**
+- `client/src/pages/FeedbackView.jsx` — added `FeedbackSkeleton` functional component above `FeedbackView`; replaced the `if (loading)` spinner block with `return <FeedbackSkeleton />`
+
+---
+
 ## 2026-07-15 — Add personalised Coaching Insights panel to FeedbackView
 
 **What:** Added a "Coaching Insights" section to the FeedbackView page, placed between the Score Breakdown and the Individual Question Breakdown accordion. The section shows 1–3 compact, actionable tip cards derived entirely from the existing session data — no new API calls or backend changes needed. Three categories of tip are generated automatically: a score-based tip (emerald "Ready to level up" for ≥80%, cyan "Add structure and depth" for 60–79%, amber "Strengthen the fundamentals" for <60%), a rose-coloured blank-answer warning that appears whenever one or more questions were left unanswered (showing the exact count), and a violet short-answer tip that fires when the average answer is under 25 words (displaying the actual average). Each card shows a relevant Lucide icon, a bold title, and a one-sentence actionable description. The grid is responsive: 1 card stretches full-width, 2 cards use a 2-column layout, and 3 cards use a 3-column layout on large screens. The section is suppressed entirely if no questions exist.

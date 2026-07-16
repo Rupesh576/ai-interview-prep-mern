@@ -3,6 +3,84 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Award, ArrowLeft, ArrowRight, ClipboardCheck, Sparkles, MessageCircle, AlertCircle, ChevronDown, ChevronUp, Copy, CheckCheck, RotateCcw, Timer, TrendingUp, BookOpen, Target } from 'lucide-react';
 import { getSessionDetails } from '../services/sessionService';
 
+const FeedbackSkeleton = () => (
+  <div className="mx-auto max-w-4xl px-6 py-10 text-white animate-pulse">
+    {/* Back button */}
+    <div className="mb-6 h-4 w-36 rounded bg-white/10" />
+
+    {/* Header */}
+    <div className="mb-8 border-b border-white/10 pb-6 space-y-3">
+      <div className="h-3 w-32 rounded bg-white/10" />
+      <div className="h-8 w-72 rounded bg-white/10" />
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="h-3 w-28 rounded bg-white/10" />
+        <div className="h-2 w-1 rounded bg-white/10" />
+        <div className="h-3 w-32 rounded bg-white/10" />
+        <div className="h-2 w-1 rounded bg-white/10" />
+        <div className="h-3 w-24 rounded bg-white/10" />
+      </div>
+    </div>
+
+    {/* Summary row: score gauge + AI summary */}
+    <div className="mb-10 grid gap-6 md:grid-cols-12">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/5 p-6 md:col-span-4 gap-4">
+        <div className="h-32 w-32 rounded-full bg-white/10" />
+        <div className="h-6 w-28 rounded-full bg-white/10" />
+      </div>
+      <div className="flex flex-col justify-center rounded-xl border border-white/10 bg-white/5 p-6 md:col-span-8 space-y-3">
+        <div className="h-4 w-44 rounded bg-white/10" />
+        <div className="h-3 w-full rounded bg-white/10" />
+        <div className="h-3 w-5/6 rounded bg-white/10" />
+        <div className="h-3 w-4/5 rounded bg-white/10" />
+        <div className="h-3 w-3/5 rounded bg-white/10" />
+      </div>
+    </div>
+
+    {/* Score breakdown */}
+    <div className="mb-10 rounded-xl border border-white/10 bg-white/5 p-6 space-y-4">
+      <div className="h-3 w-36 rounded bg-white/10" />
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="flex items-center gap-4">
+          <div className="h-4 w-32 rounded bg-white/10" />
+          <div className="flex-1 h-2 rounded-full bg-white/10" />
+          <div className="h-3 w-16 rounded bg-white/10" />
+        </div>
+      ))}
+    </div>
+
+    {/* Coaching insights placeholder */}
+    <div className="mb-10 rounded-xl border border-white/10 bg-white/5 p-6 space-y-4">
+      <div className="h-3 w-40 rounded bg-white/10" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="rounded-lg border border-white/10 p-4 space-y-2">
+            <div className="h-4 w-32 rounded bg-white/10" />
+            <div className="h-3 w-full rounded bg-white/10" />
+            <div className="h-3 w-4/5 rounded bg-white/10" />
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Question accordion skeletons */}
+    <div className="space-y-4">
+      <div className="h-6 w-52 rounded bg-white/10" />
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="rounded-xl border border-white/10 bg-white/5 p-5 flex items-center justify-between gap-4">
+          <div className="space-y-2 flex-1">
+            <div className="h-3 w-20 rounded bg-white/10" />
+            <div className="h-4 w-3/4 rounded bg-white/10" />
+          </div>
+          <div className="flex items-center gap-4 shrink-0">
+            <div className="h-5 w-10 rounded bg-white/10" />
+            <div className="h-4 w-4 rounded bg-white/10" />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 const FeedbackView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -96,12 +174,7 @@ const FeedbackView = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[80vh] flex-col items-center justify-center gap-3 text-white">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent" />
-        <p className="text-slate-400">Loading interview feedback...</p>
-      </div>
-    );
+    return <FeedbackSkeleton />;
   }
 
   if (error || !session) {
