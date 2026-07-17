@@ -42,28 +42,75 @@ const mockQuestionsDb = {
     "What are the SOLID design principles? Briefly explain any two.",
     "How do you handle secrets and environment configurations securely in a MERN project?",
     "What are WebSockets and how do they differ from HTTP polling?"
+  ],
+  behavioral: [
+    "Tell me about a time you had to debug a critical production issue under tight deadlines. How did you approach it and what was the outcome?",
+    "Describe a situation where you had to collaborate with a difficult team member on a technical project. What steps did you take?",
+    "Give an example of a time you had to learn a new technology or framework very quickly. How did you manage the ramp-up?",
+    "Tell me about a project you're most proud of. What was your specific role, what challenges did you face, and what were the results?",
+    "Describe a time you made a significant technical decision with incomplete information. What was your reasoning and the outcome?",
+    "Tell me about a time you disagreed with a technical direction your team or manager chose. How did you handle that disagreement?",
+    "Give an example of delivering a project under extreme time pressure. What trade-offs did you make and why?",
+    "Describe a situation where you had to give constructive feedback to a peer about their code or technical approach.",
+    "Tell me about a time you proactively identified and fixed a significant performance or security issue before it became a problem.",
+    "Give an example of when you had to balance paying down technical debt against delivering new product features. How did you decide?"
+  ],
+  systemDesign: [
+    "Design a URL shortening service like bit.ly. Walk me through your full architecture including storage, hashing strategy, and how you'd handle scale.",
+    "How would you design a real-time notification system for a social media platform with 10 million daily active users?",
+    "Design a rate limiter for a high-traffic REST API. Which algorithm would you use and how would you store state in a distributed environment?",
+    "How would you architect a real-time collaborative document editor like Google Docs? Discuss conflict resolution and consistency strategies.",
+    "Design a content delivery network (CDN). Explain the key components, caching hierarchy, and how you'd handle cache invalidation.",
+    "How would you design a distributed job scheduling system that reliably handles millions of background tasks with retry logic and prioritization?",
+    "Design a search autocomplete system. How would you handle ranking, personalization, and sub-100ms latency at scale?",
+    "How would you design a distributed logging and observability system for a large microservices architecture?",
+    "Design a system to detect near-duplicate images at scale given millions of uploads per day. What hashing or ML techniques would you use?",
+    "How would you design a ride-sharing backend similar to Uber? Discuss driver matching, geolocation indexing, and surge pricing components."
   ]
 };
 
 // Generate high quality mock questions
-const generateMockQuestions = (role, difficulty, techStack, count) => {
-  const normalizedRole = role.toLowerCase();
-  const normalizedStack = (techStack || '').toLowerCase();
-  
-  let pool = [];
-  if (normalizedRole.includes('front') || normalizedRole.includes('react') || normalizedStack.includes('react')) {
-    pool = [...mockQuestionsDb.frontend, ...mockQuestionsDb.general];
-  } else if (normalizedRole.includes('back') || normalizedRole.includes('node') || normalizedStack.includes('node') || normalizedStack.includes('express')) {
-    pool = [...mockQuestionsDb.backend, ...mockQuestionsDb.general];
-  } else {
-    pool = [...mockQuestionsDb.general, ...mockQuestionsDb.frontend, ...mockQuestionsDb.backend];
+const generateMockQuestions = (role, difficulty, techStack, count, questionType = 'Technical') => {
+  if (questionType === 'Behavioral') {
+    const shuffled = [...mockQuestionsDb.behavioral].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
   }
 
-  // Shuffle pool
-  const shuffled = pool.sort(() => 0.5 - Math.random());
+  if (questionType === 'System Design') {
+    const shuffled = [...mockQuestionsDb.systemDesign].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  }
+
+  const normalizedRole = role.toLowerCase();
+  const normalizedStack = (techStack || '').toLowerCase();
+
+  let technicalPool = [];
+  if (normalizedRole.includes('front') || normalizedRole.includes('react') || normalizedStack.includes('react')) {
+    technicalPool = [...mockQuestionsDb.frontend, ...mockQuestionsDb.general];
+  } else if (normalizedRole.includes('back') || normalizedRole.includes('node') || normalizedStack.includes('node') || normalizedStack.includes('express')) {
+    technicalPool = [...mockQuestionsDb.backend, ...mockQuestionsDb.general];
+  } else {
+    technicalPool = [...mockQuestionsDb.general, ...mockQuestionsDb.frontend, ...mockQuestionsDb.backend];
+  }
+
+  if (questionType === 'Mixed') {
+    const techHalf = Math.ceil(count / 2);
+    const behHalf = Math.floor(count / 2);
+    const shuffledTech = [...technicalPool].sort(() => 0.5 - Math.random()).slice(0, techHalf);
+    const shuffledBeh = [...mockQuestionsDb.behavioral].sort(() => 0.5 - Math.random()).slice(0, behHalf);
+    // Interleave technical and behavioral
+    const mixed = [];
+    for (let i = 0; i < Math.max(shuffledTech.length, shuffledBeh.length); i++) {
+      if (shuffledTech[i]) mixed.push(shuffledTech[i]);
+      if (shuffledBeh[i]) mixed.push(shuffledBeh[i]);
+    }
+    return mixed.slice(0, count);
+  }
+
+  // Technical (default)
+  const shuffled = technicalPool.sort(() => 0.5 - Math.random());
   const selected = shuffled.slice(0, count);
 
-  // If we need more than pool size or need custom topic
   while (selected.length < count) {
     const num = selected.length + 1;
     selected.push(`Can you explain a major design pattern or architectural decision you've made when working as a ${role} using ${techStack || 'modern web tech'}? (Question ${num})`);
@@ -209,12 +256,23 @@ export const generateHint = async (role, difficulty, questionText) => {
 };
 
 /**
- * Generates interview questions based on role, difficulty, tech stack, and count.
+ * Generates interview questions based on role, difficulty, tech stack, count, and question type.
  */
-export const generateQuestions = async (role, difficulty, techStack, questionsCount = 5) => {
+export const generateQuestions = async (role, difficulty, techStack, questionsCount = 5, questionType = 'Technical') => {
   if (!openai) {
     console.log("Gemini API Key is missing or default. Generating mock questions...");
-    return generateMockQuestions(role, difficulty, techStack, questionsCount);
+    return generateMockQuestions(role, difficulty, techStack, questionsCount, questionType);
+  }
+
+  let questionTypeInstruction = '';
+  if (questionType === 'Behavioral') {
+    questionTypeInstruction = 'All questions must be behavioral/situational, asking about past experiences, challenges, and outcomes (STAR format). Do NOT include technical or coding questions.';
+  } else if (questionType === 'System Design') {
+    questionTypeInstruction = 'All questions must be system design questions asking the candidate to architect, design, and reason about scalable systems or components. Do NOT include basic coding or behavioral questions.';
+  } else if (questionType === 'Mixed') {
+    questionTypeInstruction = `Generate a balanced mix: approximately half technical questions about ${techStack || 'software engineering'} and half behavioral/situational questions about past experience and teamwork.`;
+  } else {
+    questionTypeInstruction = `All questions must be technical, testing knowledge of code, architecture, and implementation related to: ${techStack || 'general software engineering concepts'}.`;
   }
 
   try {
@@ -231,7 +289,7 @@ Do not include any other text, markdown formatting (outside of standard JSON syn
         {
           role: "user",
           content: `Generate exactly ${questionsCount} interview questions for a ${difficulty} level ${role} position.
-The questions should focus on the following tech stack / topics: ${techStack || 'general software engineering concepts'}.`
+${questionTypeInstruction}`
         }
       ]
     });
@@ -244,7 +302,7 @@ The questions should focus on the following tech stack / topics: ${techStack || 
   } catch (error) {
     console.error("Gemini Question Generation Error:", error.message);
     console.log("Falling back to mock questions...");
-    return generateMockQuestions(role, difficulty, techStack, questionsCount);
+    return generateMockQuestions(role, difficulty, techStack, questionsCount, questionType);
   }
 };
 

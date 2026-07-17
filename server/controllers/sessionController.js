@@ -7,7 +7,7 @@ import { generateQuestions, evaluateAnswers, generateHint } from '../services/op
 // @access  Private
 export const createSession = async (req, res, next) => {
   try {
-    const { role, difficulty, techStack, questionsCount } = req.body;
+    const { role, difficulty, techStack, questionsCount, questionType } = req.body;
 
     if (!role || !difficulty) {
       res.status(400);
@@ -15,6 +15,8 @@ export const createSession = async (req, res, next) => {
     }
 
     const count = parseInt(questionsCount, 10) || 5;
+    const validTypes = ['Technical', 'Behavioral', 'Mixed', 'System Design'];
+    const resolvedType = validTypes.includes(questionType) ? questionType : 'Technical';
 
     // Create session entry first
     const session = await InterviewSession.create({
@@ -23,11 +25,12 @@ export const createSession = async (req, res, next) => {
       difficulty,
       techStack: techStack || '',
       questionsCount: count,
+      questionType: resolvedType,
       status: 'in-progress'
     });
 
     // Generate questions using AI / Mock service
-    const questionTexts = await generateQuestions(role, difficulty, techStack, count);
+    const questionTexts = await generateQuestions(role, difficulty, techStack, count, resolvedType);
 
     // Save questions in DB
     const questionDocs = questionTexts.map((text, index) => ({

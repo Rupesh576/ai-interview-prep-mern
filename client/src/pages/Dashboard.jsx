@@ -37,6 +37,7 @@ const Dashboard = () => {
   const [sessions, setSessions] = useState([]);
   const [role, setRole] = useState(prefill?.role || 'Frontend Engineer');
   const [difficulty, setDifficulty] = useState(prefill?.difficulty || 'Intermediate');
+  const [questionType, setQuestionType] = useState(prefill?.questionType || 'Technical');
   const [techStack, setTechStack] = useState(prefill?.techStack || '');
   const [questionsCount, setQuestionsCount] = useState(String(prefill?.questionsCount || '5'));
   const [loading, setLoading] = useState(false);
@@ -76,7 +77,8 @@ const Dashboard = () => {
         role,
         difficulty,
         techStack,
-        questionsCount: parseInt(questionsCount, 10)
+        questionsCount: parseInt(questionsCount, 10),
+        questionType
       });
       navigate(`/interview/${data.session._id}`);
     } catch (err) {
@@ -235,6 +237,28 @@ const Dashboard = () => {
                     }`}
                   >
                     {level}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-300 mb-2">
+                Question Type
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {['Technical', 'Behavioral', 'Mixed', 'System Design'].map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setQuestionType(type)}
+                    className={`rounded-lg py-2.5 text-sm font-semibold border transition ${
+                      questionType === type
+                        ? 'bg-cyan-400 border-cyan-400 text-slate-950 shadow-md shadow-cyan-400/15'
+                        : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                    }`}
+                  >
+                    {type}
                   </button>
                 ))}
               </div>
@@ -414,6 +438,11 @@ const Dashboard = () => {
                         }`}>
                           {session.difficulty}
                         </span>
+                        {session.questionType && session.questionType !== 'Technical' && (
+                          <span className="rounded-full px-2 py-0.5 text-xs font-semibold bg-violet-400/10 text-violet-400 border border-violet-400/20">
+                            {session.questionType}
+                          </span>
+                        )}
                       </div>
                       {session.techStack && (
                         <p className="text-xs text-slate-400">Focus: {session.techStack}</p>

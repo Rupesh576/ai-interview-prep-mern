@@ -249,8 +249,10 @@ const InterviewRoom = () => {
         <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">Mock Interview Room</span>
           <h1 className="text-2xl font-bold tracking-tight mt-1">{session?.role}</h1>
-          <div className="mt-2 flex items-center gap-3 text-xs text-slate-400">
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-400">
             <span>Difficulty: <strong className="text-slate-200">{session?.difficulty}</strong></span>
+            <span>•</span>
+            <span>Type: <strong className="text-slate-200">{session?.questionType || 'Technical'}</strong></span>
             <span>•</span>
             <span>Focus: <strong className="text-slate-200">{session?.techStack || 'General'}</strong></span>
             <span>•</span>

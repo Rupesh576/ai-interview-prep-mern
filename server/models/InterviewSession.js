@@ -26,6 +26,11 @@ const interviewSessionSchema = new mongoose.Schema(
       type: Number,
       default: 5
     },
+    questionType: {
+      type: String,
+      enum: ['Technical', 'Behavioral', 'Mixed', 'System Design'],
+      default: 'Technical'
+    },
     status: {
       type: String,
       enum: ['in-progress', 'completed'],
