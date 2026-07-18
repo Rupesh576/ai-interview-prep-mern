@@ -402,10 +402,40 @@ const InterviewRoom = () => {
               placeholder="Type your structured answer here. Be as detailed as possible, explaining definitions, workflows, and edge cases where applicable..."
               className="mt-3 block w-full rounded-lg border border-white/10 bg-slate-900/60 p-4 text-white placeholder-slate-500 shadow-inner outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 resize-y"
             />
-            <div className="mt-2 flex justify-between text-xs text-slate-500">
-              <span>Character count: {(answers[currentQuestion._id] || '').length}</span>
-              <span>Minimum recommended: 15 chars</span>
-            </div>
+            {(() => {
+              const answerText = answers[currentQuestion._id] || '';
+              const wordCount = answerText.trim() ? answerText.trim().split(/\s+/).length : 0;
+              const charCount = answerText.length;
+              const quality =
+                wordCount === 0   ? { label: 'Empty',      color: 'text-slate-500',   pill: 'border-slate-500/20 bg-slate-500/10 text-slate-500',   barW: '0%',    barColor: 'bg-slate-500' } :
+                wordCount < 15    ? { label: 'Too Short',  color: 'text-rose-400',    pill: 'border-rose-400/20 bg-rose-400/10 text-rose-400',       barW: `${Math.round((wordCount / 15) * 25)}%`,  barColor: 'bg-rose-400' } :
+                wordCount < 40    ? { label: 'Developing', color: 'text-amber-400',   pill: 'border-amber-400/20 bg-amber-400/10 text-amber-400',    barW: `${25 + Math.round(((wordCount - 15) / 25) * 25)}%`, barColor: 'bg-amber-400' } :
+                wordCount < 80    ? { label: 'Good',       color: 'text-cyan-400',    pill: 'border-cyan-400/20 bg-cyan-400/10 text-cyan-400',       barW: `${50 + Math.round(((wordCount - 40) / 40) * 25)}%`, barColor: 'bg-cyan-400' } :
+                                    { label: 'Detailed',   color: 'text-emerald-400', pill: 'border-emerald-400/20 bg-emerald-400/10 text-emerald-400', barW: '100%', barColor: 'bg-emerald-400' };
+              return (
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">
+                      {wordCount} word{wordCount !== 1 ? 's' : ''} · {charCount} chars
+                    </span>
+                    <span className={`rounded-full border px-2.5 py-0.5 font-semibold ${quality.pill}`}>
+                      {quality.label}
+                    </span>
+                  </div>
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ease-out ${quality.barColor}`}
+                      style={{ width: quality.barW }}
+                    />
+                  </div>
+                  {wordCount > 0 && wordCount < 40 && (
+                    <p className="text-xs text-slate-500">
+                      Aim for at least 40 words for a strong answer.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
