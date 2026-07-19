@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer } from 'lucide-react';
+import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp } from 'lucide-react';
 import { createSession, getUserSessions } from '../services/sessionService';
 
 const SessionCardSkeleton = () => (
@@ -26,6 +26,168 @@ const SessionCardSkeleton = () => (
     </div>
   </div>
 );
+
+const PerformanceTrend = ({ sessions, loading }) => {
+  if (loading) {
+    return (
+      <div className="mb-10 rounded-xl border border-white/10 bg-white/5 p-6 animate-pulse">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="h-4 w-44 rounded bg-white/10" />
+          <div className="h-4 w-52 rounded bg-white/10" />
+        </div>
+        <div className="h-20 w-full rounded bg-white/10" />
+        <div className="mt-2 flex gap-1">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-3 flex-1 rounded bg-white/10" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const data = sessions
+    .filter((s) => s.status === 'completed' && typeof s.overallScore === 'number')
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    .slice(-8);
+
+  if (data.length < 2) return null;
+
+  const n = data.length;
+  const VW = 800;
+  const VH = 100;
+  const PX = 28;
+  const PY = 14;
+  const cW = VW - PX * 2;
+  const cH = VH - PY * 2;
+
+  const ptX = (i) => (PX + (i / (n - 1)) * cW).toFixed(1);
+  const ptY = (score) => (PY + cH - (score / 100) * cH).toFixed(1);
+
+  const linePts = data
+    .map((s, i) => `${i === 0 ? 'M' : 'L'}${ptX(i)},${ptY(s.overallScore)}`)
+    .join(' ');
+  const areaFill = `${linePts} L${ptX(n - 1)},${VH - PY} L${ptX(0)},${VH - PY}Z`;
+
+  const latest = data[n - 1].overallScore;
+  const prev = data[n - 2].overallScore;
+  const diff = latest - prev;
+  const best = Math.max(...data.map((s) => s.overallScore));
+
+  const dotColor = (score) =>
+    score >= 80 ? '#34d399' : score >= 60 ? '#fbbf24' : '#f87171';
+  const latestCls =
+    latest >= 80 ? 'text-emerald-400' : latest >= 60 ? 'text-amber-400' : 'text-rose-400';
+
+  return (
+    <div className="mb-10 rounded-xl border border-white/10 bg-white/5 p-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <TrendingUp size={16} className="text-cyan-400" />
+          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+            Performance Trend
+          </h3>
+          <span className="text-xs text-slate-600">last {n} sessions</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-4 text-xs">
+          <span className="text-slate-500">
+            Best <strong className="ml-1 text-emerald-400">{best}%</strong>
+          </span>
+          <span className="text-slate-500">
+            Latest <strong className={`ml-1 ${latestCls}`}>{latest}%</strong>
+          </span>
+          {diff !== 0 && (
+            <span
+              className={`font-semibold tabular-nums ${
+                diff > 0 ? 'text-emerald-400' : 'text-rose-400'
+              }`}
+            >
+              {diff > 0 ? `↑ +${diff}` : `↓ ${diff}`} vs prev
+            </span>
+          )}
+        </div>
+      </div>
+
+      <svg
+        viewBox={`0 0 ${VW} ${VH}`}
+        className="w-full h-auto"
+        preserveAspectRatio="xMidYMid meet"
+        aria-label="Performance trend chart"
+      >
+        {/* Horizontal reference lines at 25%, 50%, 75% */}
+        {[25, 50, 75].map((v) => (
+          <line
+            key={v}
+            x1={PX}
+            y1={ptY(v)}
+            x2={VW - PX}
+            y2={ptY(v)}
+            stroke="white"
+            strokeOpacity="0.07"
+            strokeWidth="1"
+            strokeDasharray="5 5"
+          />
+        ))}
+
+        {/* Area fill beneath the trend line */}
+        <path d={areaFill} fill="rgba(34,211,238,0.06)" />
+
+        {/* Trend line */}
+        <path
+          d={linePts}
+          fill="none"
+          stroke="rgba(34,211,238,0.5)"
+          strokeWidth="2.5"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* Data-point circles */}
+        {data.map((s, i) => (
+          <circle
+            key={i}
+            cx={ptX(i)}
+            cy={ptY(s.overallScore)}
+            r="6"
+            fill={dotColor(s.overallScore)}
+            stroke="#0f172a"
+            strokeWidth="2.5"
+          />
+        ))}
+
+        {/* Score labels above each dot */}
+        {data.map((s, i) => (
+          <text
+            key={`lbl-${i}`}
+            x={ptX(i)}
+            y={Number(ptY(s.overallScore)) - 10}
+            textAnchor="middle"
+            fill="rgba(255,255,255,0.55)"
+            fontSize="10"
+            fontWeight="600"
+            fontFamily="ui-monospace, monospace"
+          >
+            {s.overallScore}
+          </text>
+        ))}
+      </svg>
+
+      {/* X-axis date labels */}
+      <div className="mt-2 flex">
+        {data.map((s, i) => (
+          <div
+            key={i}
+            className="flex-1 truncate text-center text-xs text-slate-600 px-0.5"
+          >
+            {new Date(s.createdAt).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const SESSIONS_PER_PAGE = 5;
 
@@ -190,6 +352,9 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Performance Trend Chart */}
+      <PerformanceTrend sessions={sessions} loading={fetching} />
 
       {/* Main Grid: Form and History */}
       <div className="grid gap-8 lg:grid-cols-12">
