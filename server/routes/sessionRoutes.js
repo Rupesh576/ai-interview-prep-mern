@@ -5,6 +5,7 @@ import {
   getSessionById,
   saveAnswers,
   submitSession,
+  deleteSession,
   getQuestionHint
 } from '../controllers/sessionController.js';
 import protect from '../middleware/authMiddleware.js';
@@ -19,7 +20,8 @@ router.route('/')
   .get(getSessions);
 
 router.route('/:id')
-  .get(getSessionById);
+  .get(getSessionById)
+  .delete(deleteSession);
 
 router.route('/:id/answers')
   .put(saveAnswers);

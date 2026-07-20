@@ -1,3 +1,17 @@
+## 2026-07-20 — Add delete button for in-progress sessions on Dashboard
+
+**What:** Added the ability to delete abandoned in-progress interview sessions from the Dashboard. A small rose-coloured trash-icon button now appears alongside the "Resume" button on every in-progress session card. Clicking it shows a browser confirmation dialog; confirming triggers a `DELETE /api/sessions/:id` request that removes the session document and all its associated question documents from MongoDB. While the deletion is in flight the icon is replaced by a small spinner and the button is disabled so it cannot be double-clicked. On success the card disappears from the list immediately without a full page reload. On failure an inline error banner is shown at the top of the Dashboard. The endpoint rejects any attempt to delete a completed session (HTTP 400) and requires ownership (HTTP 403), matching the security checks already present on every other session route.
+
+**Why:** Users who start a session by accident, or who generate questions they no longer intend to answer, have no way to clean up their interview history. Over time, clutter from abandoned in-progress sessions dilutes the history panel and skews the "Total Interviews" stat card. A delete button gives users control over their history without touching completed sessions (which contain valuable scored feedback). The implementation follows the existing controller/route/service/UI pattern used throughout the codebase and required no new dependencies.
+
+**Files changed:**
+- `server/controllers/sessionController.js` — added `deleteSession` controller: verifies ownership, rejects completed sessions, deletes related `Question` documents via `deleteMany`, then deletes the session with `deleteOne`
+- `server/routes/sessionRoutes.js` — imported `deleteSession`; added `.delete(deleteSession)` to the existing `/:id` route
+- `client/src/services/sessionService.js` — added `deleteSession(sessionId)` helper that calls `api.delete`
+- `client/src/pages/Dashboard.jsx` — imported `Trash2` icon and `deleteSession` service; added `deletingId` state; added `handleDeleteSession` async handler; added rose trash-icon button with spinner/disabled states to each in-progress session card
+
+---
+
 ## 2026-07-19 — Add performance trend chart to Dashboard
 
 **What:** Added a `PerformanceTrend` component to the Dashboard that renders an SVG line chart showing the user's score history across up to 8 recent completed sessions. The chart appears between the three summary stat cards (Total Interviews, Completed Sessions, Average Performance) and the New Session form / Interview History grid. It consists of: a header row with a cyan `TrendingUp` icon, a "Performance Trend" title, and three stats — Best score (emerald), Latest score (color-coded by range), and a directional arrow with signed diff versus the previous session (e.g. "↑ +12 vs prev" in emerald, or "↓ −8 vs prev" in rose); a full-width SVG chart with dashed horizontal reference lines at 25%, 50%, and 75%, a cyan semi-transparent area fill, a cyan trend line with rounded joins, and color-coded data-point circles (emerald ≥ 80%, amber 60–79%, rose < 60%) with monospaced score labels above each dot; and an X-axis row of date labels (e.g. "Jul 18") for each session. The component shows an animated pulse skeleton while sessions are loading and returns null when fewer than 2 completed sessions exist (no chart is shown to new users). All math is pure JS/SVG — no chart library dependencies were added.

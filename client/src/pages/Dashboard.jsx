@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp } from 'lucide-react';
-import { createSession, getUserSessions } from '../services/sessionService';
+import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2 } from 'lucide-react';
+import { createSession, getUserSessions, deleteSession } from '../services/sessionService';
 
 const SessionCardSkeleton = () => (
   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg border border-white/5 bg-white/5 p-4 animate-pulse">
@@ -209,6 +209,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -289,6 +290,20 @@ const Dashboard = () => {
     setSearchQuery('');
     setStatusFilter('all');
     setDifficultyFilter('all');
+  };
+
+  const handleDeleteSession = async (sessionId) => {
+    if (!window.confirm('Delete this in-progress session? This cannot be undone.')) return;
+    setDeletingId(sessionId);
+    try {
+      await deleteSession(sessionId);
+      setSessions((prev) => prev.filter((s) => s._id !== sessionId));
+    } catch (err) {
+      console.error('Failed to delete session:', err);
+      setError(err.response?.data?.message || 'Could not delete session. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -652,7 +667,7 @@ const Dashboard = () => {
                           </button>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                           <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-xs font-semibold text-cyan-400 border border-cyan-400/20">
                             In Progress
                           </span>
@@ -661,6 +676,18 @@ const Dashboard = () => {
                             className="rounded-lg bg-cyan-400 text-slate-950 hover:bg-cyan-300 px-4 py-2 text-sm font-bold transition shadow-md shadow-cyan-400/10"
                           >
                             Resume
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSession(session._id)}
+                            disabled={deletingId === session._id}
+                            title="Delete session"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-500/20 bg-rose-500/5 text-rose-400 hover:bg-rose-500/15 transition disabled:opacity-50 disabled:pointer-events-none"
+                          >
+                            {deletingId === session._id ? (
+                              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-rose-400 border-t-transparent" />
+                            ) : (
+                              <Trash2 size={14} />
+                            )}
                           </button>
                         </div>
                       )}

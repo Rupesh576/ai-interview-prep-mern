@@ -29,3 +29,8 @@ export const getQuestionHint = async (sessionId, questionId) => {
   const response = await api.post(`/sessions/${sessionId}/hint`, { questionId });
   return response.data;
 };
+
+export const deleteSession = async (sessionId) => {
+  const response = await api.delete(`/sessions/${sessionId}`);
+  return response.data;
+};

@@ -231,6 +231,37 @@ export const submitSession = async (req, res, next) => {
   }
 };
 
+// @desc    Delete an in-progress interview session and its questions
+// @route   DELETE /api/sessions/:id
+// @access  Private
+export const deleteSession = async (req, res, next) => {
+  try {
+    const session = await InterviewSession.findById(req.params.id);
+
+    if (!session) {
+      res.status(404);
+      throw new Error('Interview session not found');
+    }
+
+    if (session.user.toString() !== req.user._id.toString()) {
+      res.status(403);
+      throw new Error('Not authorized to delete this session');
+    }
+
+    if (session.status === 'completed') {
+      res.status(400);
+      throw new Error('Completed sessions cannot be deleted');
+    }
+
+    await Question.deleteMany({ session: session._id });
+    await session.deleteOne();
+
+    res.status(200).json({ success: true, message: 'Session deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get an AI-generated hint for a specific question in a session
 // @route   POST /api/sessions/:id/hint
 // @access  Private
