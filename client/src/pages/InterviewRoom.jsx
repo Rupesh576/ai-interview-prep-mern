@@ -23,6 +23,8 @@ const InterviewRoom = () => {
   const autoSaveTimerRef = useRef(null);
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [autoSaving, setAutoSaving] = useState(false);
+  // Ref used by the keyboard handler to always read latest state without stale closures
+  const kbRef = useRef({ currentIdx: 0, questionsLen: 0, submitting: false });
 
   // Fetch session details on mount
   useEffect(() => {
@@ -91,6 +93,31 @@ const InterviewRoom = () => {
   useEffect(() => {
     return () => clearTimeout(autoSaveTimerRef.current);
   }, []);
+
+  // Keep kbRef in sync so the keyboard handler always sees current values
+  kbRef.current = { currentIdx, questionsLen: questions.length, submitting };
+
+  // Keyboard shortcuts: ← / → to navigate, 1-9 to jump (ignored when typing in textarea/input)
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      const { currentIdx, questionsLen, submitting } = kbRef.current;
+      if (submitting) return;
+      const tag = document.activeElement?.tagName;
+      if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (currentIdx > 0) setCurrentIdx(currentIdx - 1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (currentIdx < questionsLen - 1) setCurrentIdx(currentIdx + 1);
+      } else if (/^[1-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const target = parseInt(e.key, 10) - 1;
+        if (target < questionsLen) setCurrentIdx(target);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []); // mount/unmount only — latest state always read through kbRef
 
   const formatElapsed = (secs) => {
     const m = Math.floor(secs / 60);
@@ -335,6 +362,22 @@ const InterviewRoom = () => {
           );
         })}
       </div>
+
+      {/* Keyboard shortcut hints — only shown when there are questions to navigate */}
+      {questions.length > 1 && (
+        <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] text-slate-600 select-none">
+          <span className="flex items-center gap-1.5">
+            <kbd className="inline-flex items-center rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-slate-500 leading-none">←</kbd>
+            <kbd className="inline-flex items-center rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-slate-500 leading-none">→</kbd>
+            <span>navigate</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <kbd className="inline-flex items-center rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-slate-500 leading-none">1–{Math.min(questions.length, 9)}</kbd>
+            <span>jump to question</span>
+          </span>
+          <span className="text-slate-700">(when not typing)</span>
+        </div>
+      )}
 
       {/* Answered-questions progress bar */}
       {questions.length > 0 && (
