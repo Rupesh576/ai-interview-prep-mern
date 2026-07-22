@@ -1,3 +1,14 @@
+## 2026-07-22 — Add skeleton loading state to InterviewRoom
+
+**What:** Replaced the plain centered spinner on the InterviewRoom loading state with a full-page `InterviewRoomSkeleton` component that mirrors the actual page structure. The skeleton renders animated pulsing placeholder shapes for every visible section: the session metadata header (eyebrow label, title, difficulty/type/focus/timer row, Save Draft and Submit buttons), the dot-navigator row (five question-bubble placeholders), the answered-questions progress bar (label row + filled track), the question card (question-number label, two-line question text, hint button, textarea, word-count/quality row, quality bar), and the navigation footer (Prev and Next buttons). All shapes use Tailwind's `animate-pulse` on the root wrapper so the animation is coordinated and smooth. No new dependencies were added.
+
+**Why:** Dashboard got proper skeleton loading on 2026-07-02 and FeedbackView on 2026-07-16, but InterviewRoom was still showing a bare spinner — an inconsistency across the three most-visited pages in the app. Skeleton screens are known to feel faster than spinners because they give the user a preview of the layout they are about to interact with, rather than an indefinite wait signal. Completing the skeleton set makes the app feel polished and consistent throughout. This addresses the "UI/UX improvements" priority area in AGENT_INSTRUCTIONS and required zero changes to the backend, routes, or any existing functionality.
+
+**Files changed:**
+- `client/src/pages/InterviewRoom.jsx` — added `InterviewRoomSkeleton` functional component above `InterviewRoom`; replaced the `if (loading)` spinner block with `return <InterviewRoomSkeleton />`
+
+---
+
 ## 2026-07-21 — Add keyboard shortcuts for question navigation in InterviewRoom
 
 **What:** Added keyboard-driven question navigation to the InterviewRoom page. Pressing the left (`←`) or right (`→`) arrow keys moves to the previous or next question respectively, and pressing any digit key `1`–`9` jumps directly to that question (e.g. `3` jumps to question 3). All three shortcuts are silently ignored while the user is actively typing in the answer textarea or any other input field, so normal text editing is unaffected. Navigation is also suppressed while the submission overlay is showing. A subtle, non-intrusive shortcut-hint strip — showing styled `<kbd>` keys and plain-language labels — appears between the dot navigator and the progress bar whenever a session has more than one question. The hint strip is dimmed so it doesn't compete visually with the question content. No new dependencies were required; the implementation uses a single `useRef` (kbRef) that is synchronised on every render so the event listener, registered only once at mount, always reads the latest `currentIdx`, `questionsLen`, and `submitting` values without stale-closure issues.

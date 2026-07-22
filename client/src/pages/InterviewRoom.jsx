@@ -3,6 +3,78 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Save, CheckCircle, AlertCircle, Loader, Timer, Lightbulb } from 'lucide-react';
 import { getSessionDetails, saveDraftAnswers, submitInterview, getQuestionHint } from '../services/sessionService';
 
+const InterviewRoomSkeleton = () => (
+  <div className="mx-auto max-w-4xl px-6 py-10 text-white animate-pulse">
+    {/* Top Session Metadata */}
+    <div className="mb-8 flex flex-col justify-between gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-center">
+      <div className="space-y-3">
+        <div className="h-3 w-36 rounded bg-white/10" />
+        <div className="h-7 w-56 rounded bg-white/10" />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="h-3 w-28 rounded bg-white/10" />
+          <div className="h-2 w-1 rounded bg-white/10" />
+          <div className="h-3 w-24 rounded bg-white/10" />
+          <div className="h-2 w-1 rounded bg-white/10" />
+          <div className="h-3 w-20 rounded bg-white/10" />
+          <div className="h-2 w-1 rounded bg-white/10" />
+          <div className="h-3 w-14 rounded bg-white/10" />
+        </div>
+      </div>
+      <div className="flex flex-col items-end gap-3 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-28 rounded-lg bg-white/10" />
+          <div className="h-9 w-36 rounded-lg bg-white/10" />
+        </div>
+        <div className="h-3 w-28 rounded bg-white/10" />
+      </div>
+    </div>
+
+    {/* Dot navigator */}
+    <div className="mb-8 flex items-center gap-2 overflow-x-auto py-2">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="h-10 w-10 shrink-0 rounded-full bg-white/10" />
+      ))}
+    </div>
+
+    {/* Progress bar */}
+    <div className="mb-8 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="h-3 w-40 rounded bg-white/10" />
+        <div className="h-3 w-8 rounded bg-white/10" />
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-white/10" />
+    </div>
+
+    {/* Question card */}
+    <div className="rounded-xl border border-white/10 bg-white/5 p-6 md:p-8 space-y-6">
+      <div className="h-3 w-28 rounded bg-white/10" />
+      <div className="space-y-2.5">
+        <div className="h-5 w-full rounded bg-white/10" />
+        <div className="h-5 w-5/6 rounded bg-white/10" />
+        <div className="h-5 w-3/4 rounded bg-white/10" />
+      </div>
+      {/* Hint button placeholder */}
+      <div className="h-9 w-32 rounded-lg bg-white/10" />
+      {/* Answer area */}
+      <div className="space-y-3">
+        <div className="h-3 w-24 rounded bg-white/10" />
+        <div className="h-52 w-full rounded-lg bg-white/10" />
+        <div className="flex items-center justify-between">
+          <div className="h-3 w-28 rounded bg-white/10" />
+          <div className="h-5 w-20 rounded-full bg-white/10" />
+        </div>
+        <div className="h-1 w-full rounded-full bg-white/10" />
+      </div>
+    </div>
+
+    {/* Navigation footer */}
+    <div className="mt-8 flex items-center justify-between">
+      <div className="h-11 w-32 rounded-lg bg-white/10" />
+      <div className="h-11 w-40 rounded-lg bg-white/10" />
+    </div>
+  </div>
+);
+
 const InterviewRoom = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -232,12 +304,7 @@ const InterviewRoom = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[80vh] flex-col items-center justify-center gap-3 text-white">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent" />
-        <p className="text-slate-400">Loading interview room...</p>
-      </div>
-    );
+    return <InterviewRoomSkeleton />;
   }
 
   if (error && !session) {
