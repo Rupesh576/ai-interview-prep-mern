@@ -1,16 +1,33 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, UserPlus, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User, UserPlus, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+
+const getPasswordStrength = (pwd) => {
+  if (!pwd) return null;
+  let score = 0;
+  if (pwd.length >= 8) score++;
+  if (pwd.length >= 12) score++;
+  if (/[A-Z]/.test(pwd)) score++;
+  if (/[0-9]/.test(pwd)) score++;
+  if (/[^A-Za-z0-9]/.test(pwd)) score++;
+  if (score <= 1) return { score: 1, label: 'Weak', barCls: 'bg-rose-500', textCls: 'text-rose-400', hint: '— use 8+ characters' };
+  if (score === 2) return { score: 2, label: 'Fair', barCls: 'bg-amber-400', textCls: 'text-amber-400', hint: '— add uppercase or numbers' };
+  if (score === 3) return { score: 3, label: 'Good', barCls: 'bg-cyan-400', textCls: 'text-cyan-400', hint: '— add symbols for max strength' };
+  return { score: 4, label: 'Strong', barCls: 'bg-emerald-400', textCls: 'text-emerald-400', hint: '' };
+};
 
 const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { registerUser } = useAuth();
   const navigate = useNavigate();
+
+  const strength = getPasswordStrength(password);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -102,14 +119,45 @@ const Register = () => {
               </span>
               <input
                 id="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Min. 6 characters"
-                className="block w-full rounded-lg border border-white/10 bg-slate-900/60 py-3 pl-10 pr-4 text-white placeholder-slate-500 shadow-inner outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                className="block w-full rounded-lg border border-white/10 bg-slate-900/60 py-3 pl-10 pr-11 text-white placeholder-slate-500 shadow-inner outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-200 transition"
+                tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
             </div>
+
+            {/* Password strength meter */}
+            {strength && (
+              <div className="mt-2.5">
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4].map((seg) => (
+                    <div
+                      key={seg}
+                      className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                        seg <= strength.score ? strength.barCls : 'bg-white/10'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <p className={`mt-1 text-xs font-semibold ${strength.textCls}`}>
+                  {strength.label}
+                  {strength.hint && (
+                    <span className="ml-1 font-normal text-slate-500">{strength.hint}</span>
+                  )}
+                </p>
+              </div>
+            )}
           </div>
 
           <button
