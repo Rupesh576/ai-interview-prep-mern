@@ -67,3 +67,32 @@ export const getMe = async (req, res) => {
   });
 };
 
+export const updateProfile = async (req, res, next) => {
+  try {
+    const { name } = req.body;
+
+    if (!name || name.trim().length < 2) {
+      res.status(400);
+      throw new Error('Name must be at least 2 characters');
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { name: name.trim() },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
