@@ -191,6 +191,26 @@ const PerformanceTrend = ({ sessions, loading }) => {
 
 const SESSIONS_PER_PAGE = 5;
 
+const DIFFICULTY_DESCRIPTIONS = {
+  Beginner: 'Entry-level questions covering core concepts. Ideal for students or early-career candidates.',
+  Intermediate: 'Mid-level questions requiring solid practical knowledge. Suited for 2–4 years of experience.',
+  Advanced: 'Senior-level questions probing deep expertise, architectural trade-offs, and system design.',
+};
+
+const QUESTION_TYPE_DESCRIPTIONS = {
+  Technical: 'Algorithms, data structures, coding patterns, and implementation challenges.',
+  Behavioral: 'Situational questions about past experience, leadership, and collaboration (STAR format).',
+  Mixed: 'An interleaved blend of roughly half technical and half behavioral questions.',
+  'System Design': 'Architecture, scalability, API design, and distributed systems for senior roles.',
+};
+
+const ESTIMATED_TIME = {
+  '3': '~5–8 min',
+  '5': '~8–12 min',
+  '7': '~12–18 min',
+  '10': '~18–25 min',
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -420,6 +440,11 @@ const Dashboard = () => {
                   </button>
                 ))}
               </div>
+              {difficulty && (
+                <p className="mt-2 text-xs text-slate-500 leading-relaxed">
+                  {DIFFICULTY_DESCRIPTIONS[difficulty]}
+                </p>
+              )}
             </div>
 
             <div>
@@ -442,11 +467,16 @@ const Dashboard = () => {
                   </button>
                 ))}
               </div>
+              {questionType && (
+                <p className="mt-2 text-xs text-slate-500 leading-relaxed">
+                  {QUESTION_TYPE_DESCRIPTIONS[questionType]}
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-slate-300" htmlFor="techStack">
-                Tech Stack / Key Topics (Optional)
+                Tech Stack / Key Topics <span className="font-normal text-slate-500">(Optional)</span>
               </label>
               <input
                 id="techStack"
@@ -456,6 +486,9 @@ const Dashboard = () => {
                 placeholder="e.g. React, Redux, Node.js, System Design"
                 className="mt-2 block w-full rounded-lg border border-white/10 bg-slate-900/60 py-3 px-4 text-white placeholder-slate-500 shadow-inner outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
               />
+              <p className="mt-1.5 text-xs text-slate-500">
+                Comma-separated topics — the AI tailors every question to your stack.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -474,6 +507,15 @@ const Dashboard = () => {
                   <option value="7">7 Questions</option>
                   <option value="10">10 Questions</option>
                 </select>
+              </div>
+              <div className="flex flex-col justify-end">
+                <p className="text-xs font-semibold text-slate-400 mb-2">Est. Duration</p>
+                <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-slate-900/60 py-3 px-4 text-sm text-slate-300">
+                  <Clock size={14} className="text-cyan-400 shrink-0" />
+                  <span className="tabular-nums font-semibold">
+                    {ESTIMATED_TIME[questionsCount] || '~10–15 min'}
+                  </span>
+                </div>
               </div>
             </div>
 
