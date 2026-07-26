@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2 } from 'lucide-react';
+import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2, Flame } from 'lucide-react';
 import { createSession, getUserSessions, deleteSession } from '../services/sessionService';
 
 const SessionCardSkeleton = () => (
@@ -184,6 +184,153 @@ const PerformanceTrend = ({ sessions, loading }) => {
             })}
           </div>
         ))}
+      </div>
+    </div>
+  );
+};
+
+const StreakCounter = ({ sessions, loading }) => {
+  if (loading) {
+    return (
+      <div className="mb-10 rounded-xl border border-white/10 bg-white/5 p-6 animate-pulse">
+        <div className="flex flex-wrap items-center justify-between gap-6 mb-5">
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-10 rounded-xl bg-white/10" />
+            <div className="space-y-2">
+              <div className="h-8 w-20 rounded bg-white/10" />
+              <div className="h-3 w-36 rounded bg-white/10" />
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="h-14 w-20 rounded-lg bg-white/10" />
+            <div className="h-14 w-20 rounded-lg bg-white/10" />
+          </div>
+        </div>
+        <div className="h-3 w-24 rounded bg-white/10 mb-2" />
+        <div className="flex gap-1">
+          {[...Array(30)].map((_, i) => (
+            <div key={i} className="h-5 w-5 rounded-sm bg-white/10 flex-shrink-0" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Collect unique session dates as YYYY-MM-DD strings
+  const sessionDaySet = new Set();
+  sessions.forEach((s) => {
+    sessionDaySet.add(new Date(s.createdAt).toISOString().split('T')[0]);
+  });
+
+  if (sessionDaySet.size === 0) return null;
+
+  // Current streak: count consecutive days ending today (or yesterday if today is empty)
+  const todayStr = new Date().toISOString().split('T')[0];
+  const checkDate = new Date(todayStr + 'T00:00:00');
+  if (!sessionDaySet.has(todayStr)) checkDate.setDate(checkDate.getDate() - 1);
+  let currentStreak = 0;
+  while (sessionDaySet.has(checkDate.toISOString().split('T')[0])) {
+    currentStreak++;
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+
+  // Longest streak ever
+  const sortedDays = [...sessionDaySet].sort();
+  let longestStreak = 0;
+  let tempStreak = 0;
+  for (let i = 0; i < sortedDays.length; i++) {
+    if (i === 0) {
+      tempStreak = 1;
+    } else {
+      const diffDays = Math.round(
+        (new Date(sortedDays[i] + 'T00:00:00') - new Date(sortedDays[i - 1] + 'T00:00:00')) /
+          (1000 * 60 * 60 * 24)
+      );
+      tempStreak = diffDays === 1 ? tempStreak + 1 : 1;
+    }
+    longestStreak = Math.max(longestStreak, tempStreak);
+  }
+
+  // 30-day activity dot grid (index 0 = 29 days ago, index 29 = today)
+  const todayDate = new Date(todayStr + 'T00:00:00');
+  const thirtyDays = Array.from({ length: 30 }, (_, offset) => {
+    const d = new Date(todayDate);
+    d.setDate(d.getDate() - (29 - offset));
+    const dayStr = d.toISOString().split('T')[0];
+    return {
+      dayStr,
+      hasSession: sessionDaySet.has(dayStr),
+      isToday: offset === 29,
+      label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+    };
+  });
+
+  const streakActive = currentStreak > 0;
+
+  return (
+    <div className="mb-10 rounded-xl border border-white/10 bg-white/5 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-6 mb-5">
+        {/* Flame icon + streak count */}
+        <div className="flex items-center gap-4">
+          <div
+            className={`rounded-xl p-2.5 ${
+              streakActive ? 'bg-orange-400/15 text-orange-400' : 'bg-white/5 text-slate-600'
+            }`}
+          >
+            <Flame size={24} />
+          </div>
+          <div>
+            <div className="flex items-end gap-1.5">
+              <span
+                className={`text-4xl font-bold tabular-nums leading-none ${
+                  streakActive ? 'text-white' : 'text-slate-500'
+                }`}
+              >
+                {currentStreak}
+              </span>
+              <span className="text-slate-400 font-semibold text-sm mb-0.5">day streak</span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              {streakActive
+                ? currentStreak === 1
+                  ? 'Good start — come back tomorrow!'
+                  : "You're on a roll! Keep practising daily."
+                : 'Practice today to start your streak!'}
+            </p>
+          </div>
+        </div>
+
+        {/* Best and total unique days */}
+        <div className="flex gap-3">
+          <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-center min-w-[72px]">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Best</p>
+            <p className="mt-0.5 text-2xl font-bold tabular-nums text-amber-400">{longestStreak}</p>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-center min-w-[72px]">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Days</p>
+            <p className="mt-0.5 text-2xl font-bold tabular-nums text-cyan-400">{sessionDaySet.size}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 30-day activity dot grid */}
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-600">Last 30 days</p>
+      <div className="flex gap-1 flex-wrap">
+        {thirtyDays.map(({ dayStr, hasSession, isToday, label }) => (
+          <div
+            key={dayStr}
+            title={`${label}${hasSession ? ' — practiced' : ''}`}
+            className={`h-5 w-5 flex-shrink-0 rounded-sm transition-colors ${
+              hasSession
+                ? 'bg-cyan-500 shadow-sm shadow-cyan-500/40'
+                : 'border border-white/5 bg-white/5'
+            } ${isToday ? 'ring-1 ring-cyan-400 ring-offset-1 ring-offset-slate-900/50' : ''}`}
+          />
+        ))}
+      </div>
+      <div className="mt-2 flex select-none justify-between text-xs text-slate-700">
+        <span>30 days ago</span>
+        <span>Today</span>
       </div>
     </div>
   );
@@ -387,6 +534,9 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Practice Streak Counter */}
+      <StreakCounter sessions={sessions} loading={fetching} />
 
       {/* Performance Trend Chart */}
       <PerformanceTrend sessions={sessions} loading={fetching} />
