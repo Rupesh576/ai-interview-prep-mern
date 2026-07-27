@@ -6,7 +6,8 @@ import {
   saveAnswers,
   submitSession,
   deleteSession,
-  getQuestionHint
+  getQuestionHint,
+  toggleStarSession
 } from '../controllers/sessionController.js';
 import protect from '../middleware/authMiddleware.js';
 
@@ -31,5 +32,8 @@ router.route('/:id/submit')
 
 router.route('/:id/hint')
   .post(getQuestionHint);
+
+router.route('/:id/star')
+  .patch(toggleStarSession);
 
 export default router;

@@ -48,6 +48,10 @@ const interviewSessionSchema = new mongoose.Schema(
     duration: {
       type: Number,  // elapsed seconds from session start to submission
       min: 0
+    },
+    starred: {
+      type: Boolean,
+      default: false
     }
   },
   {

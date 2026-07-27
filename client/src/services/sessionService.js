@@ -34,3 +34,8 @@ export const deleteSession = async (sessionId) => {
   const response = await api.delete(`/sessions/${sessionId}`);
   return response.data;
 };
+
+export const toggleStarSession = async (sessionId) => {
+  const response = await api.patch(`/sessions/${sessionId}/star`);
+  return response.data;
+};

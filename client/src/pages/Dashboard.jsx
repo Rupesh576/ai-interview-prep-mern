@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2, Flame } from 'lucide-react';
-import { createSession, getUserSessions, deleteSession } from '../services/sessionService';
+import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2, Flame, Star } from 'lucide-react';
+import { createSession, getUserSessions, deleteSession, toggleStarSession } from '../services/sessionService';
 
 const SessionCardSkeleton = () => (
   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg border border-white/5 bg-white/5 p-4 animate-pulse">
@@ -377,6 +377,7 @@ const Dashboard = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [deletingId, setDeletingId] = useState(null);
+  const [starringId, setStarringId] = useState(null);
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -434,7 +435,10 @@ const Dashboard = () => {
   const filteredSessions = sessions.filter((s) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch = !q || s.role.toLowerCase().includes(q) || (s.techStack || '').toLowerCase().includes(q);
-    const matchesStatus = statusFilter === 'all' || s.status === statusFilter;
+    const matchesStatus =
+      statusFilter === 'all' ? true :
+      statusFilter === 'starred' ? !!s.starred :
+      s.status === statusFilter;
     const matchesDifficulty = difficultyFilter === 'all' || s.difficulty === difficultyFilter;
     return matchesSearch && matchesStatus && matchesDifficulty;
   });
@@ -470,6 +474,20 @@ const Dashboard = () => {
       setError(err.response?.data?.message || 'Could not delete session. Please try again.');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleToggleStar = async (sessionId) => {
+    setStarringId(sessionId);
+    try {
+      const data = await toggleStarSession(sessionId);
+      setSessions((prev) =>
+        prev.map((s) => (s._id === sessionId ? { ...s, starred: data.starred } : s))
+      );
+    } catch (err) {
+      console.error('Failed to toggle star:', err);
+    } finally {
+      setStarringId(null);
     }
   };
 
@@ -720,13 +738,15 @@ const Dashboard = () => {
                 <div className="flex flex-wrap items-center gap-2">
                   {/* Status filter */}
                   <div className="flex items-center gap-1 text-xs">
-                    {[['all', 'All'], ['in-progress', 'In Progress'], ['completed', 'Completed']].map(([val, label]) => (
+                    {[['all', 'All'], ['in-progress', 'In Progress'], ['completed', 'Completed'], ['starred', '★ Starred']].map(([val, label]) => (
                       <button
                         key={val}
                         onClick={() => setStatusFilter(val)}
                         className={`rounded-full px-3 py-1 font-semibold border transition ${
                           statusFilter === val
-                            ? 'bg-cyan-400 border-cyan-400 text-slate-950'
+                            ? val === 'starred'
+                              ? 'bg-amber-400 border-amber-400 text-slate-950'
+                              : 'bg-cyan-400 border-cyan-400 text-slate-950'
                             : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
                         }`}
                       >
@@ -783,14 +803,30 @@ const Dashboard = () => {
             </div>
           ) : filteredSessions.length === 0 ? (
             <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed border-white/10 p-6 text-center">
-              <Search size={32} className="text-slate-500 mb-3" />
-              <h3 className="text-base font-bold text-slate-200">No sessions match your filters</h3>
-              <button
-                onClick={clearFilters}
-                className="mt-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-1.5 text-sm font-semibold text-slate-300 transition"
-              >
-                Clear filters
-              </button>
+              {statusFilter === 'starred' ? (
+                <>
+                  <Star size={32} className="text-slate-500 mb-3" />
+                  <h3 className="text-base font-bold text-slate-200">No starred sessions yet</h3>
+                  <p className="mt-1 text-xs text-slate-500">Click the star icon on any session to bookmark it for quick access.</p>
+                  <button
+                    onClick={clearFilters}
+                    className="mt-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-1.5 text-sm font-semibold text-slate-300 transition"
+                  >
+                    Show all sessions
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Search size={32} className="text-slate-500 mb-3" />
+                  <h3 className="text-base font-bold text-slate-200">No sessions match your filters</h3>
+                  <button
+                    onClick={clearFilters}
+                    className="mt-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-1.5 text-sm font-semibold text-slate-300 transition"
+                  >
+                    Clear filters
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <>
@@ -803,6 +839,9 @@ const Dashboard = () => {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="font-bold text-slate-100">{session.role}</h4>
+                        {session.starred && (
+                          <Star size={12} className="text-amber-400 shrink-0" fill="currentColor" />
+                        )}
                         <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                           session.difficulty === 'Beginner' ? 'bg-blue-400/10 text-blue-400 border border-blue-400/20' :
                           session.difficulty === 'Intermediate' ? 'bg-amber-400/10 text-amber-400 border border-amber-400/20' :
@@ -839,6 +878,24 @@ const Dashboard = () => {
                     </div>
 
                     <div className="flex items-center gap-4 self-end sm:self-center">
+                      {/* Star toggle button — always visible */}
+                      <button
+                        onClick={() => handleToggleStar(session._id)}
+                        disabled={starringId === session._id}
+                        title={session.starred ? 'Remove star' : 'Star this session'}
+                        className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition disabled:opacity-50 disabled:pointer-events-none ${
+                          session.starred
+                            ? 'border-amber-400/40 bg-amber-400/10 text-amber-400 hover:bg-amber-400/20'
+                            : 'border-white/10 bg-white/5 text-slate-500 hover:text-amber-400 hover:border-amber-400/30 hover:bg-amber-400/5'
+                        }`}
+                      >
+                        {starringId === session._id ? (
+                          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        ) : (
+                          <Star size={14} fill={session.starred ? 'currentColor' : 'none'} />
+                        )}
+                      </button>
+
                       {session.status === 'completed' ? (
                         <div className="flex items-center gap-3">
                           <div className="text-right">

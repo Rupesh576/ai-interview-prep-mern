@@ -262,6 +262,32 @@ export const deleteSession = async (req, res, next) => {
   }
 };
 
+// @desc    Toggle starred flag on a session
+// @route   PATCH /api/sessions/:id/star
+// @access  Private
+export const toggleStarSession = async (req, res, next) => {
+  try {
+    const session = await InterviewSession.findById(req.params.id);
+
+    if (!session) {
+      res.status(404);
+      throw new Error('Interview session not found');
+    }
+
+    if (session.user.toString() !== req.user._id.toString()) {
+      res.status(403);
+      throw new Error('Not authorized to access this session');
+    }
+
+    session.starred = !session.starred;
+    await session.save();
+
+    res.status(200).json({ success: true, starred: session.starred });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get an AI-generated hint for a specific question in a session
 // @route   POST /api/sessions/:id/hint
 // @access  Private
