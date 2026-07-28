@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2, Flame, Star } from 'lucide-react';
+import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2, Flame, Star, ArrowUpDown } from 'lucide-react';
 import { createSession, getUserSessions, deleteSession, toggleStarSession } from '../services/sessionService';
 
 const SessionCardSkeleton = () => (
@@ -378,6 +378,7 @@ const Dashboard = () => {
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [deletingId, setDeletingId] = useState(null);
   const [starringId, setStarringId] = useState(null);
+  const [sortBy, setSortBy] = useState('date-desc');
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -419,10 +420,10 @@ const Dashboard = () => {
     }
   };
 
-  // Reset page to 1 when any filter changes
+  // Reset page to 1 when any filter or sort changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, difficultyFilter]);
+  }, [searchQuery, statusFilter, difficultyFilter, sortBy]);
 
   // Helper metrics (always over full sessions, not filtered)
   const completedInterviews = sessions.filter(s => s.status === 'completed');
@@ -443,11 +444,24 @@ const Dashboard = () => {
     return matchesSearch && matchesStatus && matchesDifficulty;
   });
 
-  // Pagination (over filtered results)
-  const totalPages = Math.max(1, Math.ceil(filteredSessions.length / SESSIONS_PER_PAGE));
+  // Sort filtered sessions
+  const sortedSessions = [...filteredSessions].sort((a, b) => {
+    switch (sortBy) {
+      case 'date-asc':   return new Date(a.createdAt) - new Date(b.createdAt);
+      case 'date-desc':  return new Date(b.createdAt) - new Date(a.createdAt);
+      case 'score-desc': return (b.overallScore ?? -1) - (a.overallScore ?? -1);
+      case 'score-asc':  return (a.overallScore ?? 101) - (b.overallScore ?? 101);
+      case 'role-asc':   return a.role.localeCompare(b.role);
+      case 'role-desc':  return b.role.localeCompare(a.role);
+      default:           return 0;
+    }
+  });
+
+  // Pagination (over sorted + filtered results)
+  const totalPages = Math.max(1, Math.ceil(sortedSessions.length / SESSIONS_PER_PAGE));
   const safePage = Math.min(currentPage, totalPages);
   const pageStart = (safePage - 1) * SESSIONS_PER_PAGE;
-  const paginatedSessions = filteredSessions.slice(pageStart, pageStart + SESSIONS_PER_PAGE);
+  const paginatedSessions = sortedSessions.slice(pageStart, pageStart + SESSIONS_PER_PAGE);
 
   const hasActiveFilters = searchQuery || statusFilter !== 'all' || difficultyFilter !== 'all';
 
@@ -712,26 +726,46 @@ const Dashboard = () => {
             {/* Search + filters */}
             {!fetching && sessions.length > 0 && (
               <div className="flex flex-col gap-3">
-                {/* Search box */}
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">
-                    <Search size={15} />
-                  </span>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by role or tech stack…"
-                    className="w-full rounded-lg border border-white/10 bg-slate-900/60 py-2 pl-9 pr-9 text-sm text-white placeholder-slate-500 outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white transition"
+                {/* Search box + Sort control row */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 pointer-events-none">
+                      <Search size={15} />
+                    </span>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search by role or tech stack…"
+                      className="w-full rounded-lg border border-white/10 bg-slate-900/60 py-2 pl-9 pr-9 text-sm text-white placeholder-slate-500 outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white transition"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Sort dropdown */}
+                  <div className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/60 px-2.5 py-2 text-xs text-slate-400">
+                    <ArrowUpDown size={12} className="shrink-0" />
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="bg-transparent text-slate-300 outline-none cursor-pointer"
+                      aria-label="Sort sessions"
                     >
-                      <X size={14} />
-                    </button>
-                  )}
+                      <option value="date-desc">Newest first</option>
+                      <option value="date-asc">Oldest first</option>
+                      <option value="score-desc">Score: high → low</option>
+                      <option value="score-asc">Score: low → high</option>
+                      <option value="role-asc">Role: A → Z</option>
+                      <option value="role-desc">Role: Z → A</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Filter pills row */}
@@ -949,7 +983,7 @@ const Dashboard = () => {
               {totalPages > 1 && (
                 <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
                   <span className="text-xs text-slate-500">
-                    Showing {pageStart + 1}–{Math.min(pageStart + SESSIONS_PER_PAGE, filteredSessions.length)} of {filteredSessions.length}{hasActiveFilters ? ` of ${sessions.length}` : ''} sessions
+                    Showing {pageStart + 1}–{Math.min(pageStart + SESSIONS_PER_PAGE, sortedSessions.length)} of {sortedSessions.length}{hasActiveFilters ? ` of ${sessions.length}` : ''} sessions
                   </span>
                   <div className="flex items-center gap-2">
                     <button
