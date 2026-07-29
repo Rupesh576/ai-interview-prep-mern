@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2, Flame, Star, ArrowUpDown } from 'lucide-react';
+import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2, Flame, Star, ArrowUpDown, FileText } from 'lucide-react';
 import { createSession, getUserSessions, deleteSession, toggleStarSession } from '../services/sessionService';
 
 const SessionCardSkeleton = () => (
@@ -875,6 +875,9 @@ const Dashboard = () => {
                         <h4 className="font-bold text-slate-100">{session.role}</h4>
                         {session.starred && (
                           <Star size={12} className="text-amber-400 shrink-0" fill="currentColor" />
+                        )}
+                        {session.notes && session.notes.trim() && (
+                          <FileText size={12} className="text-violet-400 shrink-0" title="Has personal notes" />
                         )}
                         <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                           session.difficulty === 'Beginner' ? 'bg-blue-400/10 text-blue-400 border border-blue-400/20' :

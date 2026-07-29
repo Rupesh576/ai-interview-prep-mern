@@ -52,6 +52,11 @@ const interviewSessionSchema = new mongoose.Schema(
     starred: {
       type: Boolean,
       default: false
+    },
+    notes: {
+      type: String,
+      default: '',
+      maxlength: [2000, 'Notes cannot exceed 2000 characters']
     }
   },
   {

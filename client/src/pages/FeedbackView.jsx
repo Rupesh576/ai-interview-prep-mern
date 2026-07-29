@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Award, ArrowLeft, ArrowRight, ClipboardCheck, Sparkles, MessageCircle, AlertCircle, ChevronDown, ChevronUp, Copy, CheckCheck, RotateCcw, Timer, TrendingUp, BookOpen, Target } from 'lucide-react';
-import { getSessionDetails } from '../services/sessionService';
+import { Award, ArrowLeft, ArrowRight, ClipboardCheck, Sparkles, MessageCircle, AlertCircle, ChevronDown, ChevronUp, Copy, CheckCheck, RotateCcw, Timer, TrendingUp, BookOpen, Target, PenLine, CheckCircle } from 'lucide-react';
+import { getSessionDetails, updateSessionNotes } from '../services/sessionService';
 
 const FeedbackSkeleton = () => (
   <div className="mx-auto max-w-4xl px-6 py-10 text-white animate-pulse">
@@ -91,6 +91,9 @@ const FeedbackView = () => {
   const [error, setError] = useState('');
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -98,6 +101,7 @@ const FeedbackView = () => {
         const data = await getSessionDetails(id);
         setSession(data.session);
         setQuestions(data.questions || []);
+        setNotes(data.session.notes || '');
         
         // Auto-expand the first question
         if (data.questions && data.questions.length > 0) {
@@ -115,6 +119,21 @@ const FeedbackView = () => {
 
   const toggleExpand = (qId) => {
     setExpandedQuestionId(expandedQuestionId === qId ? null : qId);
+  };
+
+  const handleSaveNotes = async () => {
+    if (savingNotes) return;
+    setSavingNotes(true);
+    setNotesSaved(false);
+    try {
+      await updateSessionNotes(id, notes);
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 3000);
+    } catch (err) {
+      console.error('Failed to save notes:', err);
+    } finally {
+      setSavingNotes(false);
+    }
   };
 
   const handleRetryInterview = () => {
@@ -143,6 +162,12 @@ const FeedbackView = () => {
     lines.push('AI SUMMARY');
     lines.push('-'.repeat(40));
     lines.push(session.feedbackSummary || 'No summary available.');
+    if (notes.trim()) {
+      lines.push('');
+      lines.push('PERSONAL NOTES');
+      lines.push('-'.repeat(40));
+      lines.push(notes.trim());
+    }
     lines.push('');
     lines.push('QUESTION BREAKDOWN');
     lines.push('-'.repeat(40));
@@ -420,6 +445,55 @@ const FeedbackView = () => {
           </div>
         </div>
       )}
+
+      {/* Personal Notes */}
+      <div className="mb-10 rounded-xl border border-white/10 bg-white/5 p-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <PenLine size={16} className="text-violet-400" />
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Personal Notes</h3>
+          </div>
+          <span className={`text-xs tabular-nums ${notes.length > 1800 ? 'text-rose-400' : 'text-slate-600'}`}>
+            {notes.length} / 2000
+          </span>
+        </div>
+        <textarea
+          value={notes}
+          onChange={(e) => { setNotes(e.target.value.slice(0, 2000)); setNotesSaved(false); }}
+          placeholder="Jot down what you learned, what tripped you up, or what to review before your next session…"
+          rows={4}
+          className="w-full resize-none rounded-lg border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-slate-300 placeholder-slate-600 outline-none focus:border-violet-400/40 focus:ring-1 focus:ring-violet-400/20 transition"
+        />
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="text-xs text-slate-600">Notes are private to you and saved with this session.</p>
+          <button
+            onClick={handleSaveNotes}
+            disabled={savingNotes}
+            className={`inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold transition ${
+              notesSaved
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                : 'bg-violet-500/15 text-violet-300 border border-violet-400/20 hover:bg-violet-500/25'
+            } disabled:opacity-60`}
+          >
+            {savingNotes ? (
+              <>
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
+                Saving…
+              </>
+            ) : notesSaved ? (
+              <>
+                <CheckCircle size={14} />
+                Saved
+              </>
+            ) : (
+              <>
+                <PenLine size={14} />
+                Save Notes
+              </>
+            )}
+          </button>
+        </div>
+      </div>
 
       {/* Individual Question Feedback Section */}
       <div className="space-y-6">

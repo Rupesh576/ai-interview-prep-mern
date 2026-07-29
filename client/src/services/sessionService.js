@@ -39,3 +39,8 @@ export const toggleStarSession = async (sessionId) => {
   const response = await api.patch(`/sessions/${sessionId}/star`);
   return response.data;
 };
+
+export const updateSessionNotes = async (sessionId, notes) => {
+  const response = await api.patch(`/sessions/${sessionId}/notes`, { notes });
+  return response.data;
+};

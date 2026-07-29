@@ -288,6 +288,39 @@ export const toggleStarSession = async (req, res, next) => {
   }
 };
 
+// @desc    Update personal notes on a session
+// @route   PATCH /api/sessions/:id/notes
+// @access  Private
+export const updateSessionNotes = async (req, res, next) => {
+  try {
+    const { notes } = req.body;
+
+    if (typeof notes !== 'string') {
+      res.status(400);
+      throw new Error('Notes must be a string');
+    }
+
+    const session = await InterviewSession.findById(req.params.id);
+
+    if (!session) {
+      res.status(404);
+      throw new Error('Interview session not found');
+    }
+
+    if (session.user.toString() !== req.user._id.toString()) {
+      res.status(403);
+      throw new Error('Not authorized to access this session');
+    }
+
+    session.notes = notes.slice(0, 2000);
+    await session.save();
+
+    res.status(200).json({ success: true, notes: session.notes });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get an AI-generated hint for a specific question in a session
 // @route   POST /api/sessions/:id/hint
 // @access  Private
