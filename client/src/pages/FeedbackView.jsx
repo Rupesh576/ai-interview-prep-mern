@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Award, ArrowLeft, ArrowRight, ClipboardCheck, Sparkles, MessageCircle, AlertCircle, ChevronDown, ChevronUp, Copy, CheckCheck, RotateCcw, Timer, TrendingUp, BookOpen, Target, PenLine, CheckCircle } from 'lucide-react';
-import { getSessionDetails, updateSessionNotes } from '../services/sessionService';
+import { getSessionDetails, updateSessionNotes, getUserSessions } from '../services/sessionService';
 
 const FeedbackSkeleton = () => (
   <div className="mx-auto max-w-4xl px-6 py-10 text-white animate-pulse">
@@ -94,6 +94,8 @@ const FeedbackView = () => {
   const [notes, setNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
+  const [otherSessions, setOtherSessions] = useState([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -116,6 +118,29 @@ const FeedbackView = () => {
     };
     fetchSession();
   }, [id]);
+
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const data = await getUserSessions();
+        if (!cancelled) {
+          setOtherSessions(
+            (data.sessions || []).filter(
+              (s) => s._id !== id && s.status === 'completed' && typeof s.overallScore === 'number'
+            )
+          );
+        }
+      } catch {
+        // silent — comparison panel simply won't render
+      } finally {
+        if (!cancelled) setHistoryLoaded(true);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [session, id]);
 
   const toggleExpand = (qId) => {
     setExpandedQuestionId(expandedQuestionId === qId ? null : qId);
@@ -252,6 +277,21 @@ const FeedbackView = () => {
     { label: 'Good', range: '6–7', count: goodCount, barColor: 'bg-amber-400', textColor: 'text-amber-400' },
     { label: 'Needs Work', range: '0–5', count: needsWorkCount, barColor: 'bg-rose-400', textColor: 'text-rose-400' },
   ];
+
+  // Comparison stats derived from other completed sessions
+  const prevSession = otherSessions.length > 0
+    ? [...otherSessions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
+    : null;
+  const prevScore = prevSession ? prevSession.overallScore : null;
+  const allOtherScores = otherSessions.map((s) => s.overallScore);
+  const avgOtherScore = allOtherScores.length > 0
+    ? Math.round(allOtherScores.reduce((a, b) => a + b, 0) / allOtherScores.length)
+    : null;
+  const bestOtherScore = allOtherScores.length > 0 ? Math.max(...allOtherScores) : null;
+  const isNewBest = score > 0 && (bestOtherScore === null || score > bestOtherScore);
+  const displayBest = isNewBest ? score : bestOtherScore;
+  const scoreVsLast = prevScore !== null ? score - prevScore : null;
+  const scoreVsAvg = avgOtherScore !== null ? score - avgOtherScore : null;
 
   // Coaching insights: derive personalised tips from session data
   const unansweredCount = questions.filter(q => !q.userAnswer || !q.userAnswer.trim()).length;
@@ -394,6 +434,76 @@ const FeedbackView = () => {
           </p>
         </div>
       </div>
+
+      {/* Session Comparison Panel */}
+      {historyLoaded && otherSessions.length > 0 && (
+        <div className="mb-10 rounded-xl border border-white/10 bg-white/5 p-6">
+          <div className="mb-5 flex items-center gap-2">
+            <TrendingUp size={16} className="text-cyan-400" />
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Your Progress</h3>
+            <span className="text-xs text-slate-600">
+              {otherSessions.length} session{otherSessions.length !== 1 ? 's' : ''} compared
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {scoreVsLast !== null && (
+              <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  vs. Last Session
+                </p>
+                <p
+                  className={`text-3xl font-extrabold tabular-nums leading-none ${
+                    scoreVsLast > 0 ? 'text-emerald-400' : scoreVsLast < 0 ? 'text-rose-400' : 'text-slate-400'
+                  }`}
+                >
+                  {scoreVsLast > 0 ? `+${scoreVsLast}` : scoreVsLast === 0 ? '—' : `${scoreVsLast}`}
+                </p>
+                <p className="mt-1.5 text-xs text-slate-500">was {prevScore}%</p>
+              </div>
+            )}
+
+            {scoreVsAvg !== null && (
+              <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  vs. Your Average
+                </p>
+                <p
+                  className={`text-3xl font-extrabold tabular-nums leading-none ${
+                    scoreVsAvg > 0 ? 'text-emerald-400' : scoreVsAvg < 0 ? 'text-rose-400' : 'text-slate-400'
+                  }`}
+                >
+                  {scoreVsAvg > 0 ? `+${scoreVsAvg}` : scoreVsAvg === 0 ? '—' : `${scoreVsAvg}`}
+                </p>
+                <p className="mt-1.5 text-xs text-slate-500">avg. {avgOtherScore}%</p>
+              </div>
+            )}
+
+            {displayBest !== null && (
+              <div
+                className={`rounded-lg border p-4 text-center ${
+                  isNewBest ? 'border-emerald-400/30 bg-emerald-500/5' : 'border-white/10 bg-white/5'
+                }`}
+              >
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Personal Best
+                </p>
+                <p
+                  className={`text-3xl font-extrabold tabular-nums leading-none ${
+                    isNewBest ? 'text-emerald-400' : 'text-amber-400'
+                  }`}
+                >
+                  {displayBest}%
+                </p>
+                {isNewBest ? (
+                  <p className="mt-1.5 text-xs font-semibold text-emerald-500">New record!</p>
+                ) : (
+                  <p className="mt-1.5 text-xs text-slate-500">your best</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Per-Question Score Breakdown */}
       {questions.length > 0 && (
