@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Award, ArrowLeft, ArrowRight, ClipboardCheck, Sparkles, MessageCircle, AlertCircle, ChevronDown, ChevronUp, Copy, CheckCheck, RotateCcw, Timer, TrendingUp, BookOpen, Target, PenLine, CheckCircle } from 'lucide-react';
+import { Award, ArrowLeft, ArrowRight, ClipboardCheck, Sparkles, MessageCircle, AlertCircle, ChevronDown, ChevronUp, Copy, CheckCheck, RotateCcw, Timer, TrendingUp, BookOpen, Target, PenLine, CheckCircle, Download } from 'lucide-react';
 import { getSessionDetails, updateSessionNotes, getUserSessions } from '../services/sessionService';
 
 const FeedbackSkeleton = () => (
@@ -91,6 +91,7 @@ const FeedbackView = () => {
   const [error, setError] = useState('');
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
   const [notes, setNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
@@ -175,7 +176,7 @@ const FeedbackView = () => {
     });
   };
 
-  const handleCopyFeedback = async () => {
+  const buildReportText = () => {
     const lines = [];
     lines.push('AI Interview Feedback Report');
     lines.push('='.repeat(40));
@@ -196,7 +197,6 @@ const FeedbackView = () => {
     lines.push('');
     lines.push('QUESTION BREAKDOWN');
     lines.push('-'.repeat(40));
-
     questions.forEach((q, idx) => {
       lines.push('');
       lines.push(`Q${idx + 1}: ${q.questionText}`);
@@ -214,14 +214,33 @@ const FeedbackView = () => {
       }
       lines.push('');
     });
+    return lines.join('\n');
+  };
 
+  const handleCopyFeedback = async () => {
     try {
-      await navigator.clipboard.writeText(lines.join('\n'));
+      await navigator.clipboard.writeText(buildReportText());
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch (err) {
       console.error('Failed to copy feedback to clipboard:', err);
     }
+  };
+
+  const handleDownloadFeedback = () => {
+    const text = buildReportText();
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const dateStr = new Date(session.createdAt).toISOString().slice(0, 10);
+    const safeRole = session.role.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const filename = `interview-feedback-${safeRole}-${dateStr}.txt`;
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setDownloaded(true);
+    setTimeout(() => setDownloaded(false), 2500);
   };
 
   if (loading) {
@@ -705,6 +724,27 @@ const FeedbackView = () => {
             <>
               <Copy size={16} />
               Copy Feedback Report
+            </>
+          )}
+        </button>
+
+        <button
+          onClick={handleDownloadFeedback}
+          className={`inline-flex items-center gap-2 rounded-lg border px-6 py-3 font-bold transition ${
+            downloaded
+              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
+              : 'border-white/10 bg-white/5 hover:bg-white/10 text-slate-200'
+          }`}
+        >
+          {downloaded ? (
+            <>
+              <CheckCheck size={16} />
+              Downloaded!
+            </>
+          ) : (
+            <>
+              <Download size={16} />
+              Download Report
             </>
           )}
         </button>
