@@ -376,6 +376,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
+  const [questionTypeFilter, setQuestionTypeFilter] = useState('all');
   const [deletingId, setDeletingId] = useState(null);
   const [starringId, setStarringId] = useState(null);
   const [sortBy, setSortBy] = useState('date-desc');
@@ -423,7 +424,7 @@ const Dashboard = () => {
   // Reset page to 1 when any filter or sort changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, difficultyFilter, sortBy]);
+  }, [searchQuery, statusFilter, difficultyFilter, questionTypeFilter, sortBy]);
 
   // Helper metrics (always over full sessions, not filtered)
   const completedInterviews = sessions.filter(s => s.status === 'completed');
@@ -441,7 +442,8 @@ const Dashboard = () => {
       statusFilter === 'starred' ? !!s.starred :
       s.status === statusFilter;
     const matchesDifficulty = difficultyFilter === 'all' || s.difficulty === difficultyFilter;
-    return matchesSearch && matchesStatus && matchesDifficulty;
+    const matchesType = questionTypeFilter === 'all' || (s.questionType || 'Technical') === questionTypeFilter;
+    return matchesSearch && matchesStatus && matchesDifficulty && matchesType;
   });
 
   // Sort filtered sessions
@@ -463,7 +465,7 @@ const Dashboard = () => {
   const pageStart = (safePage - 1) * SESSIONS_PER_PAGE;
   const paginatedSessions = sortedSessions.slice(pageStart, pageStart + SESSIONS_PER_PAGE);
 
-  const hasActiveFilters = searchQuery || statusFilter !== 'all' || difficultyFilter !== 'all';
+  const hasActiveFilters = searchQuery || statusFilter !== 'all' || difficultyFilter !== 'all' || questionTypeFilter !== 'all';
 
   const formatDuration = (secs) => {
     const m = Math.floor(secs / 60);
@@ -475,6 +477,7 @@ const Dashboard = () => {
     setSearchQuery('');
     setStatusFilter('all');
     setDifficultyFilter('all');
+    setQuestionTypeFilter('all');
   };
 
   const handleDeleteSession = async (sessionId) => {
@@ -807,8 +810,27 @@ const Dashboard = () => {
                       </button>
                     ))}
                   </div>
+                </div>
 
-                  {/* Clear all filters */}
+                {/* Question type filter row */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1 text-xs">
+                    {[['all', 'Any Type'], ['Technical', 'Technical'], ['Behavioral', 'Behavioral'], ['Mixed', 'Mixed'], ['System Design', 'System Design']].map(([val, label]) => (
+                      <button
+                        key={val}
+                        onClick={() => setQuestionTypeFilter(val)}
+                        className={`rounded-full px-3 py-1 font-semibold border transition ${
+                          questionTypeFilter === val
+                            ? 'bg-violet-400 border-violet-400 text-slate-950'
+                            : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Clear all filters — moved here to end of last filter row */}
                   {hasActiveFilters && (
                     <button
                       onClick={clearFilters}
