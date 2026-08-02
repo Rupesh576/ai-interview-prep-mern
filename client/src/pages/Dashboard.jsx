@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2, Flame, Star, ArrowUpDown, FileText } from 'lucide-react';
+import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2, Flame, Star, ArrowUpDown, FileText, Download } from 'lucide-react';
 import { createSession, getUserSessions, deleteSession, toggleStarSession } from '../services/sessionService';
 
 const SessionCardSkeleton = () => (
@@ -480,6 +480,39 @@ const Dashboard = () => {
     setQuestionTypeFilter('all');
   };
 
+  const handleExportCSV = () => {
+    const rows = sessions.map((s) => ({
+      Date: new Date(s.createdAt).toLocaleDateString(),
+      Role: s.role,
+      Difficulty: s.difficulty,
+      Type: s.questionType || 'Technical',
+      'Tech Stack': s.techStack || '',
+      Status: s.status === 'completed' ? 'Completed' : 'In Progress',
+      Score: s.status === 'completed' && typeof s.overallScore === 'number' ? `${s.overallScore}%` : '',
+      Duration: s.duration > 0 ? formatDuration(s.duration) : '',
+      Questions: s.questionsCount,
+      Starred: s.starred ? 'Yes' : 'No',
+      Notes: s.notes ? s.notes.replace(/[\r\n]+/g, ' ') : '',
+    }));
+
+    const headers = Object.keys(rows[0]);
+    const escape = (val) => {
+      const str = String(val ?? '');
+      return str.includes(',') || str.includes('"') || str.includes('\n')
+        ? `"${str.replace(/"/g, '""')}"`
+        : str;
+    };
+    const csv = [headers.join(','), ...rows.map((r) => headers.map((h) => escape(r[h])).join(','))].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `interview-history-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleDeleteSession = async (sessionId) => {
     if (!window.confirm('Delete this in-progress session? This cannot be undone.')) return;
     setDeletingId(sessionId);
@@ -724,7 +757,19 @@ const Dashboard = () => {
         {/* Interview Sessions History */}
         <div className="rounded-xl border border-white/10 bg-white/5 p-6 shadow-lg lg:col-span-7">
           <div className="mb-6 flex flex-col gap-4">
-            <h2 className="text-xl font-bold tracking-tight">Interview History</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-xl font-bold tracking-tight">Interview History</h2>
+              {!fetching && sessions.length > 0 && (
+                <button
+                  onClick={handleExportCSV}
+                  title="Export all sessions as CSV"
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:bg-white/10 hover:text-white transition"
+                >
+                  <Download size={13} />
+                  Export CSV
+                </button>
+              )}
+            </div>
 
             {/* Search + filters */}
             {!fetching && sessions.length > 0 && (
