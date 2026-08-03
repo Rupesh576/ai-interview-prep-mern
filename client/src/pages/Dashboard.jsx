@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2, Flame, Star, ArrowUpDown, FileText, Download } from 'lucide-react';
+import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2, Flame, Star, ArrowUpDown, FileText, Download, Target } from 'lucide-react';
 import { createSession, getUserSessions, deleteSession, toggleStarSession } from '../services/sessionService';
 
 const SessionCardSkeleton = () => (
@@ -336,6 +336,247 @@ const StreakCounter = ({ sessions, loading }) => {
   );
 };
 
+const GoalTracker = ({ sessions, loading }) => {
+  const [goalScore, setGoalScore] = useState(() => {
+    const stored = localStorage.getItem('interviewGoalScore');
+    return stored ? parseInt(stored, 10) : null;
+  });
+  const [editing, setEditing] = useState(false);
+  const [inputVal, setInputVal] = useState('');
+
+  if (loading) {
+    return (
+      <div className="mb-10 rounded-xl border border-white/10 bg-white/5 p-6 animate-pulse">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-4 rounded bg-white/10" />
+            <div className="h-3 w-28 rounded bg-white/10" />
+          </div>
+          <div className="h-3 w-10 rounded bg-white/10" />
+        </div>
+        <div className="flex items-end gap-4 mb-3">
+          <div className="space-y-1.5">
+            <div className="h-2.5 w-24 rounded bg-white/10" />
+            <div className="h-7 w-16 rounded bg-white/10" />
+          </div>
+          <div className="h-5 w-6 rounded bg-white/10 mb-1" />
+          <div className="space-y-1.5">
+            <div className="h-2.5 w-16 rounded bg-white/10" />
+            <div className="h-7 w-16 rounded bg-white/10" />
+          </div>
+        </div>
+        <div className="h-2 w-full rounded-full bg-white/10" />
+      </div>
+    );
+  }
+
+  const completedSessions = sessions.filter(
+    (s) => s.status === 'completed' && typeof s.overallScore === 'number'
+  );
+  const avgScore =
+    completedSessions.length > 0
+      ? Math.round(
+          completedSessions.reduce((acc, s) => acc + s.overallScore, 0) /
+            completedSessions.length
+        )
+      : null;
+
+  const handleSetGoal = () => {
+    const val = parseInt(inputVal, 10);
+    if (isNaN(val) || val < 1 || val > 100) return;
+    setGoalScore(val);
+    localStorage.setItem('interviewGoalScore', String(val));
+    setEditing(false);
+    setInputVal('');
+  };
+
+  const handleClearGoal = () => {
+    setGoalScore(null);
+    localStorage.removeItem('interviewGoalScore');
+    setEditing(false);
+    setInputVal('');
+  };
+
+  const goalReached = goalScore !== null && avgScore !== null && avgScore >= goalScore;
+  const progress =
+    goalScore !== null && avgScore !== null
+      ? Math.min(100, Math.round((avgScore / goalScore) * 100))
+      : 0;
+  const pointsAway = goalScore !== null && avgScore !== null ? goalScore - avgScore : null;
+
+  // Suggest a raised goal that is a multiple of 5
+  const suggestedNextGoal =
+    goalScore !== null
+      ? Math.min(100, goalScore + (5 - (goalScore % 5 === 0 ? 5 : goalScore % 5)))
+      : null;
+
+  if (goalScore === null && !editing) {
+    return (
+      <div className="mb-10 rounded-xl border border-dashed border-white/10 bg-white/5 p-5 flex flex-wrap items-center gap-4">
+        <div className="rounded-xl bg-cyan-400/10 p-2.5 text-cyan-400 shrink-0">
+          <Target size={20} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-slate-300">Set a practice goal</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Define a target average score to stay motivated and track your progress.
+          </p>
+        </div>
+        <button
+          onClick={() => setEditing(true)}
+          className="shrink-0 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-400 hover:bg-cyan-400/20 transition"
+        >
+          Set Goal
+        </button>
+      </div>
+    );
+  }
+
+  if (editing) {
+    return (
+      <div className="mb-10 rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-5 flex flex-wrap items-start gap-4">
+        <div className="rounded-xl bg-cyan-400/10 p-2.5 text-cyan-400 shrink-0 mt-0.5">
+          <Target size={20} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-slate-300 mb-3">
+            Enter your target average score (1–100)
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="number"
+              min="1"
+              max="100"
+              value={inputVal}
+              onChange={(e) => setInputVal(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSetGoal();
+                if (e.key === 'Escape') { setEditing(false); setInputVal(''); }
+              }}
+              placeholder={goalScore !== null ? String(goalScore) : 'e.g. 75'}
+              autoFocus
+              className="w-28 rounded-lg border border-cyan-400/30 bg-slate-900/60 py-2 px-3 text-sm text-white placeholder-slate-500 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+            />
+            <span className="text-slate-500 text-sm">%</span>
+            <button
+              onClick={handleSetGoal}
+              className="rounded-lg bg-cyan-400 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-cyan-300 transition"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => { setEditing(false); setInputVal(''); }}
+              className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-400 hover:bg-white/10 transition"
+            >
+              Cancel
+            </button>
+            {goalScore !== null && (
+              <button
+                onClick={handleClearGoal}
+                className="text-xs text-slate-500 hover:text-rose-400 transition ml-1"
+              >
+                Remove goal
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`mb-10 rounded-xl border p-6 ${
+        goalReached ? 'border-emerald-400/30 bg-emerald-500/5' : 'border-white/10 bg-white/5'
+      }`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <Target size={16} className={goalReached ? 'text-emerald-400' : 'text-cyan-400'} />
+          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Practice Goal</h3>
+          {goalReached && (
+            <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-bold text-emerald-400 border border-emerald-500/20">
+              Goal Reached!
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => { setInputVal(String(goalScore)); setEditing(true); }}
+          className="text-xs text-slate-500 hover:text-slate-300 transition"
+        >
+          Edit goal
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-4 mb-3">
+        <div>
+          <p className="text-xs text-slate-500 mb-0.5">Current average</p>
+          <p
+            className={`text-2xl font-extrabold tabular-nums leading-none ${
+              avgScore === null
+                ? 'text-slate-500'
+                : avgScore >= 80
+                ? 'text-emerald-400'
+                : avgScore >= 60
+                ? 'text-amber-400'
+                : 'text-rose-400'
+            }`}
+          >
+            {avgScore !== null ? `${avgScore}%` : '—'}
+          </p>
+        </div>
+        <span className="text-slate-600 text-lg font-bold mb-0.5">→</span>
+        <div>
+          <p className="text-xs text-slate-500 mb-0.5">Your goal</p>
+          <p
+            className={`text-2xl font-extrabold tabular-nums leading-none ${
+              goalReached ? 'text-emerald-400' : 'text-cyan-400'
+            }`}
+          >
+            {goalScore}%
+          </p>
+        </div>
+        <div className="ml-auto text-right">
+          <p className="text-xs text-slate-500 mb-0.5">Progress</p>
+          <p
+            className={`text-xl font-bold tabular-nums leading-none ${
+              goalReached ? 'text-emerald-400' : 'text-slate-300'
+            }`}
+          >
+            {avgScore !== null ? `${progress}%` : '—'}
+          </p>
+        </div>
+      </div>
+
+      <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+        <div
+          className={`h-full rounded-full transition-all duration-700 ease-out ${
+            goalReached ? 'bg-emerald-400' : 'bg-cyan-400'
+          }`}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
+      {goalReached ? (
+        <p className="mt-2 text-xs text-emerald-500">
+          You've hit your target!
+          {suggestedNextGoal !== null && suggestedNextGoal > goalScore
+            ? ` Try raising your goal to ${suggestedNextGoal}% to keep improving.`
+            : ' Outstanding — you\'ve reached the maximum!'}
+        </p>
+      ) : pointsAway !== null && pointsAway > 0 ? (
+        <p className="mt-2 text-xs text-slate-500">
+          {pointsAway} point{pointsAway !== 1 ? 's' : ''} away — keep practising!
+        </p>
+      ) : avgScore === null ? (
+        <p className="mt-2 text-xs text-slate-500">
+          Complete an interview session to start tracking progress toward your goal.
+        </p>
+      ) : null}
+    </div>
+  );
+};
+
 const SESSIONS_PER_PAGE = 5;
 
 const DIFFICULTY_DESCRIPTIONS = {
@@ -602,6 +843,9 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Practice Goal Tracker */}
+      <GoalTracker sessions={sessions} loading={fetching} />
 
       {/* Practice Streak Counter */}
       <StreakCounter sessions={sessions} loading={fetching} />
