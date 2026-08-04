@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2, Flame, Star, ArrowUpDown, FileText, Download, Target } from 'lucide-react';
+import { Play, Award, ClipboardList, BookOpen, Clock, AlertCircle, ChevronLeft, ChevronRight, Search, X, RotateCcw, Timer, TrendingUp, Trash2, Flame, Star, ArrowUpDown, FileText, Download, Target, Sparkles } from 'lucide-react';
 import { createSession, getUserSessions, deleteSession, toggleStarSession } from '../services/sessionService';
 
 const SessionCardSkeleton = () => (
@@ -577,6 +577,182 @@ const GoalTracker = ({ sessions, loading }) => {
   );
 };
 
+const SmartRecommendations = ({ sessions, loading, onApply }) => {
+  if (loading) {
+    return (
+      <div className="mb-10 rounded-xl border border-white/10 bg-white/5 p-6 animate-pulse">
+        <div className="mb-5 h-4 w-52 rounded bg-white/10" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="rounded-lg border border-white/10 p-4 space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="h-8 w-8 rounded-lg bg-white/10" />
+                <div className="h-4 w-16 rounded-full bg-white/10" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-4 w-36 rounded bg-white/10" />
+                <div className="h-3 w-full rounded bg-white/10" />
+                <div className="h-3 w-4/5 rounded bg-white/10" />
+              </div>
+              <div className="h-8 w-28 rounded-lg bg-white/10" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const completed = sessions
+    .filter((s) => s.status === 'completed' && typeof s.overallScore === 'number')
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  if (completed.length < 2) return null;
+
+  const recs = [];
+
+  // Difficulty progression recommendation
+  const latestDiff = completed[0].difficulty;
+  const sameLevel = completed.filter((s) => s.difficulty === latestDiff).slice(0, 5);
+  if (sameLevel.length >= 2) {
+    const avg = Math.round(sameLevel.reduce((a, s) => a + s.overallScore, 0) / sameLevel.length);
+    if (avg >= 76 && latestDiff !== 'Advanced') {
+      const next = latestDiff === 'Beginner' ? 'Intermediate' : 'Advanced';
+      recs.push({
+        color: 'emerald',
+        Icon: TrendingUp,
+        badge: 'Level Up',
+        title: `Try ${next} difficulty`,
+        reason: `Your last ${sameLevel.length} ${latestDiff} session${sameLevel.length !== 1 ? 's' : ''} averaged ${avg}% — you're ready for a bigger challenge.`,
+        settings: { role: completed[0].role, difficulty: next, questionType: completed[0].questionType || 'Technical' },
+      });
+    } else if (avg < 55 && latestDiff !== 'Beginner') {
+      const lower = latestDiff === 'Advanced' ? 'Intermediate' : 'Beginner';
+      recs.push({
+        color: 'amber',
+        Icon: BookOpen,
+        badge: 'Foundation',
+        title: `Practice at ${lower}`,
+        reason: `Your recent ${latestDiff} session${sameLevel.length !== 1 ? 's' : ''} averaged ${avg}% — consolidating at ${lower} level will sharpen your fundamentals.`,
+        settings: { role: completed[0].role, difficulty: lower, questionType: completed[0].questionType || 'Technical' },
+      });
+    }
+  }
+
+  // Question-type diversity recommendation
+  const recent5 = completed.slice(0, 5);
+  const typeSet = new Set(recent5.map((s) => s.questionType || 'Technical'));
+  if (typeSet.size === 1 && recent5.length >= 3) {
+    const currentType = [...typeSet][0];
+    const suggest =
+      currentType === 'Technical'     ? 'Behavioral'    :
+      currentType === 'Behavioral'    ? 'Technical'     :
+      currentType === 'System Design' ? 'Technical'     : 'System Design';
+    recs.push({
+      color: 'violet',
+      Icon: Award,
+      badge: 'Branch Out',
+      title: `Try ${suggest} questions`,
+      reason: `Your last ${recent5.length} sessions were all ${currentType}. Mixing in ${suggest} rounds out your interview readiness.`,
+      settings: { role: completed[0].role, difficulty: completed[0].difficulty, questionType: suggest },
+    });
+  }
+
+  // Explore-a-new-role recommendation (surfaced when fewer than 2 recs so far)
+  if (recs.length < 2) {
+    const roleCounts = {};
+    completed.forEach((s) => { roleCounts[s.role] = (roleCounts[s.role] || 0) + 1; });
+    const sortedRoles = Object.entries(roleCounts).sort((a, b) => b[1] - a[1]);
+    if (sortedRoles.length === 1 && sortedRoles[0][1] >= 4) {
+      const known = sortedRoles[0][0];
+      const altRoles = ['Backend Engineer', 'Full Stack Developer', 'Data Engineer', 'DevOps Engineer', 'ML Engineer', 'Product Manager'];
+      const suggestRole = altRoles.find((r) => r.toLowerCase() !== known.toLowerCase()) || 'Backend Engineer';
+      recs.push({
+        color: 'cyan',
+        Icon: Target,
+        badge: 'New Territory',
+        title: `Explore ${suggestRole}`,
+        reason: `You've done ${sortedRoles[0][1]} sessions as "${known}". Practising a different role broadens your job opportunities.`,
+        settings: { role: suggestRole, difficulty: completed[0].difficulty, questionType: completed[0].questionType || 'Technical' },
+      });
+    }
+  }
+
+  if (recs.length === 0) return null;
+
+  const palette = {
+    emerald: {
+      card:  'border-emerald-400/20 bg-emerald-400/5',
+      icon:  'bg-emerald-400/15 text-emerald-400',
+      badge: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-400',
+      btn:   'border-emerald-400/30 bg-emerald-400/5 text-emerald-400 hover:bg-emerald-400/15',
+    },
+    amber: {
+      card:  'border-amber-400/20 bg-amber-400/5',
+      icon:  'bg-amber-400/15 text-amber-400',
+      badge: 'border-amber-400/30 bg-amber-400/10 text-amber-400',
+      btn:   'border-amber-400/30 bg-amber-400/5 text-amber-400 hover:bg-amber-400/15',
+    },
+    violet: {
+      card:  'border-violet-400/20 bg-violet-400/5',
+      icon:  'bg-violet-400/15 text-violet-400',
+      badge: 'border-violet-400/30 bg-violet-400/10 text-violet-400',
+      btn:   'border-violet-400/30 bg-violet-400/5 text-violet-400 hover:bg-violet-400/15',
+    },
+    cyan: {
+      card:  'border-cyan-400/20 bg-cyan-400/5',
+      icon:  'bg-cyan-400/15 text-cyan-400',
+      badge: 'border-cyan-400/30 bg-cyan-400/10 text-cyan-400',
+      btn:   'border-cyan-400/30 bg-cyan-400/5 text-cyan-400 hover:bg-cyan-400/15',
+    },
+  };
+
+  const colsCls =
+    recs.length === 1 ? '' :
+    recs.length === 2 ? 'sm:grid-cols-2' :
+                        'sm:grid-cols-2 lg:grid-cols-3';
+
+  return (
+    <div className="mb-10 rounded-xl border border-white/10 bg-white/5 p-6">
+      <div className="mb-5 flex items-center gap-2">
+        <Sparkles size={16} className="text-cyan-400" />
+        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+          What to Practice Next
+        </h3>
+        <span className="text-xs text-slate-600">based on your history</span>
+      </div>
+      <div className={`grid gap-4 ${colsCls}`}>
+        {recs.map((rec, i) => {
+          const p = palette[rec.color];
+          return (
+            <div key={i} className={`flex flex-col gap-3 rounded-lg border p-4 ${p.card}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className={`rounded-lg p-2 ${p.icon}`}>
+                  <rec.Icon size={16} />
+                </div>
+                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${p.badge}`}>
+                  {rec.badge}
+                </span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-slate-200">{rec.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-400">{rec.reason}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onApply(rec.settings)}
+                className={`inline-flex items-center gap-1.5 self-start rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${p.btn}`}
+              >
+                <Play size={10} fill="currentColor" />
+                Use These Settings
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const SESSIONS_PER_PAGE = 5;
 
 const DIFFICULTY_DESCRIPTIONS = {
@@ -621,6 +797,7 @@ const Dashboard = () => {
   const [deletingId, setDeletingId] = useState(null);
   const [starringId, setStarringId] = useState(null);
   const [sortBy, setSortBy] = useState('date-desc');
+  const [recommendationApplied, setRecommendationApplied] = useState(false);
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -782,6 +959,15 @@ const Dashboard = () => {
     }
   };
 
+  const handleApplyRecommendation = ({ role: r, difficulty: d, questionType: qt }) => {
+    setRole(r);
+    setDifficulty(d);
+    setQuestionType(qt);
+    setRecommendationApplied(true);
+    setTimeout(() => setRecommendationApplied(false), 3500);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-10 text-white">
       {/* Header Section */}
@@ -853,6 +1039,9 @@ const Dashboard = () => {
       {/* Performance Trend Chart */}
       <PerformanceTrend sessions={sessions} loading={fetching} />
 
+      {/* Smart Practice Recommendations */}
+      <SmartRecommendations sessions={sessions} loading={fetching} onApply={handleApplyRecommendation} />
+
       {/* Main Grid: Form and History */}
       <div className="grid gap-8 lg:grid-cols-12">
         {/* New Session Form */}
@@ -863,6 +1052,13 @@ const Dashboard = () => {
             <div className="mb-5 flex items-center gap-2 rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-4 py-3 text-xs text-cyan-400">
               <RotateCcw size={13} className="shrink-0" />
               <span>Settings pre-filled from your last session — edit or start as-is.</span>
+            </div>
+          )}
+
+          {recommendationApplied && (
+            <div className="mb-5 flex items-center gap-2 rounded-lg border border-violet-400/20 bg-violet-400/5 px-4 py-3 text-xs text-violet-400">
+              <Sparkles size={13} className="shrink-0" />
+              <span>Recommendation applied — review the settings and click Generate.</span>
             </div>
           )}
 
